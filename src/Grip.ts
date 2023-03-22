@@ -93,7 +93,6 @@ export class Grip {
   }
 
   public get half() {
-    console.log(this.height);
     return union(
       subtract(
         union(

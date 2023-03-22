@@ -1,16 +1,20 @@
 import type {Geom3} from '@jscad/modeling/src/geometries/types';
-import {booleans, geometries, primitives, transforms} from '@jscad/modeling';
-import {Centered, degreeToRadian} from './utls';
+import {booleans, expansions, geometries, primitives, transforms} from '@jscad/modeling';
+import {Centered, degreeToRadian, measureTime} from './utls';
 import {Geom2} from '@jscad/modeling/src/geometries/geom2';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
+import {cube, polygon, rectangle} from '@jscad/modeling/src/primitives';
+import {TactileSwitch} from './TactileSwitch';
 
 const {cuboid, sphere, line, arc} = primitives;
-const {translateZ, translateX, translateY, translate, rotateX, rotateY, mirror} = transforms;
+const {translateZ, translateX, translateY, translate, rotateX, rotate, rotateY, mirror} = transforms;
 const {union, subtract} = booleans;
-const {path2, geom2} = geometries;
+const {path2, geom2, geom3} = geometries;
+const {offset, expand} = expansions;
 
 const outlineLimitThickness = 50;
 const solidThickness = 25;
+const collisionAdjustSize = 0.001;
 
 interface Wall {
   readonly soldFaceHalf: Geom2;
@@ -19,7 +23,8 @@ interface Wall {
 }
 
 interface TriggerFace {
-  readonly solidHalf: Geom3;
+  readonly solidHalf?: Geom3;
+  readonly half: Geom3;
   readonly solidGeom2Half?: Geom2;
   readonly outlineLimitHalf: Geom3;
 }
@@ -31,11 +36,20 @@ export class Trigger {
   public readonly underFace = new UnderFace(this.width);
   public readonly topFace = new TopFace(this.width, this.length);
   // public readonly length = 55;
-  public readonly backHeight = 10;
+  public readonly backHeight = 15;
 
   public readonly buttonFaceDegree = 34;
 
   public get half(): Geom3 {
+    const {faces} = this;
+    return union(
+      ...faces.map(({face, transform}, index) => {
+        return subtract(
+          transform(face.half),
+          ...faces.filter((_, i) => i !== index).map((i) => i.transform(i.face.outlineLimitHalf)),
+        );
+      }),
+    );
     return union(
       // this.transformForButtonFace(Centered.cuboid([1, this.width / 2, 40])),
       // this.outlineLimitOfButtonFace,
@@ -48,28 +62,49 @@ export class Trigger {
     );
   }
 
-  private get faces() {
+  private get faces(): {face: TriggerFace; transform: (g: Geom3) => Geom3}[] {
     return [
       {face: this.buttonFace, transform: (g: Geom3) => this.transformForButtonFace(g)},
       {face: this.underFace, transform: (g: Geom3) => this.transformForUnderFace(g)},
       {face: this.topFace, transform: (g: Geom3) => g},
-    ] as const;
+    ];
   }
 
   public get solidHalf(): Geom3 {
     const {faces} = this;
-    return union(
-      ...faces.map(({face, transform}, index) =>
-        subtract(
-          transform(face.solidHalf),
-          ...faces.filter((_, i) => i !== index).map((i) => i.transform(i.face.outlineLimitHalf)),
-        ),
+    let result: Geom3 = geom3.create();
+    for (const {face, transform} of faces) {
+      if (face.solidHalf) {
+        result = union(result, transform(face.solidHalf));
+      }
+    }
+    for (const {face, transform} of faces) {
+      result = subtract(result, transform(face.outlineLimitHalf));
+    }
+    result = subtract(
+      result,
+      translate(
+        [50, this.width / 2, 12],
+        rotate([0, -Math.PI / 2 - 0.1, 0], extrudeLinear({height: 50}, this.aaaFace)),
       ),
     );
+    return result;
+  }
+
+  private get aaaFace(): Geom2 {
+    const width = 5;
+    const height = 24;
+    let path = path2.create([
+      [0, 0],
+      [height, -10],
+      [height, width],
+      [0, width],
+    ]);
+    return geom2.fromPoints(path2.toPoints(path));
   }
 
   public get devSold(): Geom3 {
-    const underCutArea = translate([0, this.width / 4, 15 + 28], cuboid({size: [100, this.width / 2, 30]}));
+    const underCutArea = translate([0, this.width / 4, 15 + 31.5], cuboid({size: [100, this.width / 2, 30]}));
     const half = subtract(this.solidHalf, this.devJointHalf, underCutArea);
 
     return union(half, mirror({normal: [0, 1, 0]}, half));
@@ -99,8 +134,15 @@ class TopFace implements TriggerFace {
     return Centered.cuboid([this.length, this.width / 2, solidThickness]);
   }
 
+  public get half(): Geom3 {
+    return cube({size: 0.1});
+  }
+
   public get outlineLimitHalf(): Geom3 {
-    return translateZ(-outlineLimitThickness, Centered.cuboid([this.length, this.width / 2, outlineLimitThickness]));
+    return translateZ(
+      -outlineLimitThickness,
+      Centered.cuboid([this.length, this.width / 2 + collisionAdjustSize, outlineLimitThickness]),
+    );
   }
 }
 
@@ -108,6 +150,14 @@ class TopFace implements TriggerFace {
  * ボタンを配置する面
  */
 class ButtonFace implements TriggerFace {
+  private readonly tactileSwitch = new TactileSwitch();
+
+  private readonly frontThickness = this.tactileSwitch.height - 2;
+
+  private readonly topSwitchCenterDistance = 17;
+  private readonly switchDistanceLeftToRight = 14;
+  private readonly switchDistanceTopToBottom = 17;
+
   public constructor(public readonly width: number) {}
   public get solidHalf(): Geom3 {
     return extrudeLinear({height: 50}, this.solidGeom2Half);
@@ -115,6 +165,33 @@ class ButtonFace implements TriggerFace {
 
   public get solidGeom2Half(): Geom2 {
     return this.makeGeom2Half(0);
+  }
+
+  public get half(): Geom3 {
+    const subtractX = solidThickness - this.frontThickness;
+    const wall = extrudeLinear(
+      {height: 50},
+      subtract(this.solidGeom2Half, translateX(-solidThickness, Centered.rectangle([subtractX, 12]))),
+    );
+    return subtract(
+      wall,
+      this.transformTopSwitch(this.tactileSwitch.looseOctagonOutline),
+      this.transformBottomSwitch(this.tactileSwitch.looseOctagonOutline),
+    );
+  }
+
+  private transformTopSwitch(g: Geom3): Geom3 {
+    return translate(
+      [-this.frontThickness, this.switchDistanceLeftToRight / 2, this.topSwitchCenterDistance],
+      rotateY(Math.PI / 2, g),
+    );
+  }
+
+  private transformBottomSwitch(g: Geom3): Geom3 {
+    return translate(
+      [-this.frontThickness, 0, this.topSwitchCenterDistance + this.switchDistanceTopToBottom],
+      rotateY(Math.PI / 2, g),
+    );
   }
 
   public makeGeom2Half(offset: number): Geom2 {
@@ -146,10 +223,11 @@ class ButtonFace implements TriggerFace {
     // ]);
   }
 
+  @measureTime
   public get outlineLimitHalf(): Geom3 {
     const outlineLimitBase = translateX(
       -outlineLimitThickness / 2,
-      Centered.cuboid([outlineLimitThickness, this.width / 2, 50]),
+      Centered.cuboid([outlineLimitThickness, this.width / 2 + collisionAdjustSize, 50]),
     );
     return subtract(outlineLimitBase, this.solidHalf);
   }
@@ -159,16 +237,37 @@ class ButtonFace implements TriggerFace {
  * 下の方の面
  */
 class UnderFace implements TriggerFace {
+  public readonly thickness = 1;
+
   public constructor(public readonly width: number) {}
   public get solidHalf(): Geom3 {
     return extrudeLinear({height: 50}, this.solidGeom2Half);
   }
 
-  public get solidGeom2Half(): Geom2 {
-    return this.makeGeom2Half(this.width);
+  @measureTime
+  public get half(): Geom3 {
+    return extrudeLinear(
+      {height: 50},
+      subtract(
+        this.solidGeom2Half,
+        offset({delta: -1}, this.makeGeom2Half(0)),
+        rectangle({
+          size: [solidThickness - this.thickness * 2, this.thickness],
+          center: [solidThickness / 2, this.thickness / 2],
+        }),
+        rectangle({
+          size: [this.thickness, this.width - this.thickness],
+          center: [solidThickness - this.thickness / 2, this.thickness / 2],
+        }),
+      ),
+    );
   }
 
-  public makeGeom2Half(offset: number): Geom2 {
+  public get solidGeom2Half(): Geom2 {
+    return this.makeGeom2Half(0);
+  }
+
+  public makeGeom2Half(offset_: number): Geom2 {
     const radius = 8;
     let path = path2.create([
       [0, 0],
@@ -181,12 +280,13 @@ class UnderFace implements TriggerFace {
     return geom2.fromPoints(path2.toPoints(path));
   }
 
+  @measureTime
   public get outlineLimitHalf(): Geom3 {
     const limitLength = 60;
     const limitOffset = -10;
     const outlineLimitBase = translate(
       [-outlineLimitThickness / 2, 0, limitOffset],
-      Centered.cuboid([outlineLimitThickness, this.width / 2, limitLength]),
+      Centered.cuboid([outlineLimitThickness, this.width / 2 + collisionAdjustSize, limitLength]),
     );
     return subtract(
       outlineLimitBase,

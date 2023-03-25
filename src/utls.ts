@@ -2,6 +2,8 @@ import {Vec3} from '@jscad/modeling/src/maths/vec3';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {primitives} from '@jscad/modeling';
 import {Vec2} from '@jscad/modeling/src/maths/vec2';
+import {union} from '@jscad/modeling/src/operations/booleans';
+import {mirrorX, mirrorY, mirrorZ} from '@jscad/modeling/src/operations/transforms';
 
 export class Centered {
   public static cuboid(size: Vec3): Geom3 {
@@ -89,4 +91,24 @@ export function measureTime<This, Args extends any[], Return>(
     console.log(`time ${className}.${context.name.toString()} ${Date.now() - startTime}ms`);
     return value;
   };
+}
+
+export function selfTransform<This extends {transform: ((g: Geom3) => Geom3) | undefined}>(
+  target: () => Geom3,
+  context: ClassGetterDecoratorContext | ClassMethodDecoratorContext,
+) {
+  return function (this: This): Geom3 {
+    return this.transform?.(target.call(this)) ?? target.call(this);
+  };
+}
+
+export function halfToFullY(geom: Geom3, axis: 'x' | 'y' | 'z' = 'y'): Geom3 {
+  switch (axis) {
+    case 'x':
+      return union(geom, mirrorX(geom));
+    case 'y':
+      return union(geom, mirrorY(geom));
+    case 'z':
+      return union(geom, mirrorZ(geom));
+  }
 }

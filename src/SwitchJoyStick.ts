@@ -1,6 +1,6 @@
-import {Geom3} from "@jscad/modeling/src/geometries/types";
+import {Geom3} from '@jscad/modeling/src/geometries/types';
 
-class SwitchJoyCon {
+class SwitchJoyStick {
   public readonly baseWidth = 19;
   public readonly baseHeight = 21;
   public readonly baseThickness = 5;
@@ -10,11 +10,7 @@ class SwitchJoyCon {
   public readonly stickTopThickness = 5;
   public readonly stickTopRadius = 16;
 
-  public get stick(): Geom3 {
-
-  }
+  public get stick(): Geom3 {}
 
   public get stickTop(): Geom3 {}
-
-
 }

@@ -5,6 +5,7 @@ import {Geom2} from '@jscad/modeling/src/geometries/geom2';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {cube, polygon, rectangle} from '@jscad/modeling/src/primitives';
 import {TactileSwitch} from './TactileSwitch';
+import {mirrorY} from '@jscad/modeling/src/operations/transforms';
 
 const {cuboid, sphere, line, arc} = primitives;
 const {translateZ, translateX, translateY, translate, rotateX, rotate, rotateY, mirror} = transforms;
@@ -70,7 +71,11 @@ export class Trigger {
     ];
   }
 
-  public get solidHalf(): Geom3 {
+  public get outline(): Geom3 {
+    return union(this.outlineHalf, mirrorY(this.outlineHalf));
+  }
+
+  public get outlineHalf(): Geom3 {
     const {faces} = this;
     let result: Geom3 = geom3.create();
     for (const {face, transform} of faces) {
@@ -85,13 +90,13 @@ export class Trigger {
       result,
       translate(
         [50, this.width / 2, 12],
-        rotate([0, -Math.PI / 2 - 0.1, 0], extrudeLinear({height: 50}, this.aaaFace)),
+        rotate([0, -Math.PI / 2 - 0.15, 0], extrudeLinear({height: 50}, this.bottomSideCutFace)),
       ),
     );
     return result;
   }
 
-  private get aaaFace(): Geom2 {
+  private get bottomSideCutFace(): Geom2 {
     const width = 5;
     const height = 24;
     let path = path2.create([
@@ -105,7 +110,7 @@ export class Trigger {
 
   public get devSold(): Geom3 {
     const underCutArea = translate([0, this.width / 4, 15 + 31.5], cuboid({size: [100, this.width / 2, 30]}));
-    const half = subtract(this.solidHalf, this.devJointHalf, underCutArea);
+    const half = subtract(this.outlineHalf, this.devJointHalf, underCutArea);
 
     return union(half, mirror({normal: [0, 1, 0]}, half));
   }

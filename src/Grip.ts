@@ -1,8 +1,8 @@
 import {booleans, expansions, extrusions, primitives, transforms} from '@jscad/modeling';
 import {Geom2, Geom3, Geometry} from '@jscad/modeling/src/geometries/types';
 import {MainBoard} from './MainBoard';
-import {Centered, octagon} from './utls';
-import {translateZ} from '@jscad/modeling/src/operations/transforms';
+import {Cacheable, cashGetter, Centered, octagon} from './utls';
+import {mirrorY, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {BatteryBoxHolder} from './BatteryBoxHolder';
 
 const {rectangle, circle, sphere, polygon} = primitives;
@@ -16,32 +16,32 @@ const collisionAdjustSize = 0.00001;
 // グリップの傾き 21.6度
 // 電池ボックスの傾き 10度
 
-export class Grip {
+export class Grip extends Cacheable {
   public readonly board = new MainBoard();
   public readonly batteryBoxHolder = new BatteryBoxHolder();
-  private readonly topWallThickness = 1;
-  private readonly mainBoardTopMargin = 0.5;
-  private readonly mainBoardBottomMargin = 0.5;
-  private readonly thickness = 1;
-  private readonly height =
+  public readonly topWallThickness = 1;
+  public readonly mainBoardTopMargin = 0.5;
+  public readonly mainBoardBottomMargin = 0.5;
+  public readonly thickness = 1;
+  public readonly height =
     this.topWallThickness + this.board.height + this.mainBoardTopMargin + this.mainBoardBottomMargin + this.thickness;
-  private readonly width = 30;
-  private readonly radius = 6;
-  private readonly length = 68.5;
-  private readonly usbHoleWidth = 4.85 * 2;
-  private readonly usbHoleHeight = 4;
-  private readonly switchHoleWidth = 6;
-  private readonly switchHoleHeight = 4;
-  private readonly endThickness = 1.2;
-  private readonly switchHoleTopFromUsbHoleBottom = 7.2;
-  private readonly topWallLength = 15;
+  public readonly width = 30;
+  public readonly radius = 6;
+  public readonly length = 68.5;
+  public readonly usbHoleWidth = 4.85 * 2;
+  public readonly usbHoleHeight = 4;
+  public readonly switchHoleWidth = 6;
+  public readonly switchHoleHeight = 4;
+  public readonly endThickness = 1.2;
+  public readonly switchHoleTopFromUsbHoleBottom = 7.2;
+  public readonly topWallLength = 15;
 
-  private readonly batteryBoxRotateDegree = 10;
-  private readonly mainRotateDegree = 21.6;
+  public readonly batteryBoxRotateDegree = 10;
+  public readonly mainRotateDegree = 21.6;
 
   // TODO sketchupモデルの結果値なので、理想的には完成形から逆算すべき
-  private readonly jointEndHeight = 10.75;
-  private readonly boardScrewHallDistanceFromEnd = 31.2;
+  public readonly jointEndHeight = 10.75;
+  public readonly boardScrewHallDistanceFromEnd = 31.2;
 
   private get outlineBasicFaceHalf(): Geom2 {
     return this.makeBasicFace(this.height, this.width, this.radius);
@@ -123,11 +123,16 @@ export class Grip {
     );
   }
 
+  @cashGetter
   public get outlineHalf() {
     return union(
       extrudeLinear({height: this.length}, this.outlineBasicFaceHalf),
       this.transformBatteryBoxHolder(this.batteryBoxHolder.outlineHalf),
     );
+  }
+
+  public get outline(): Geom3 {
+    return union(this.outlineHalf, mirrorY(this.outlineHalf));
   }
 
   private get topWallSubtractionHalf(): Geom3 {

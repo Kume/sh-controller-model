@@ -149,7 +149,7 @@ class BoardScrewHall {
 
   public constructor(public readonly transform: (g: Geom3) => Geom3) {}
 
-  public get mainHall(): Geom3 {
+  public get mainHole(): Geom3 {
     const height = 10;
     return this.transform(
       translate(
@@ -159,7 +159,7 @@ class BoardScrewHall {
     );
   }
 
-  public get headHall(): Geom3 {
+  public get headHole(): Geom3 {
     const height = 2.3;
     return this.transform(
       translate(
@@ -170,7 +170,7 @@ class BoardScrewHall {
   }
 
   public get subtractTarget(): Geom3 {
-    return union(this.mainHall, this.headHall);
+    return union(this.mainHole, this.headHole);
   }
 
   public get half(): Geom3 {

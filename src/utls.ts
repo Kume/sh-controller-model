@@ -56,11 +56,11 @@ export function hexagon(size: number, sizeType: XGonSizeType = 'min'): Geom2 {
 }
 
 export class Cacheable {
-  private __cache: Map<string | Symbol, any> = new Map();
-  public getValue(key: string | Symbol): any {
+  private __cache: Map<string | symbol, any> = new Map();
+  public getValue(key: string | symbol): any {
     return this.__cache.get(key);
   }
-  public setValue(key: string | Symbol, value: any): void {
+  public setValue(key: string | symbol, value: any): void {
     this.__cache.set(key, value);
   }
 }

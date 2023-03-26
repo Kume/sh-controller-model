@@ -2,8 +2,8 @@ import {Vec3} from '@jscad/modeling/src/maths/vec3';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {primitives} from '@jscad/modeling';
 import {Vec2} from '@jscad/modeling/src/maths/vec2';
-import {union} from '@jscad/modeling/src/operations/booleans';
 import {mirrorX, mirrorY, mirrorZ} from '@jscad/modeling/src/operations/transforms';
+import {colorize} from '@jscad/modeling/src/colors';
 
 export class Centered {
   public static cuboid(size: Vec3): Geom3 {
@@ -67,7 +67,7 @@ export class Cacheable {
   }
 }
 
-export function cashGetter<This extends Cacheable>(target: Function, context: ClassGetterDecoratorContext) {
+export function cashGetter<This extends Cacheable>(target: () => unknown, context: ClassGetterDecoratorContext) {
   return function (this: This) {
     const cachedValue = this.getValue(context.name);
     if (cachedValue !== undefined) {
@@ -77,6 +77,16 @@ export function cashGetter<This extends Cacheable>(target: Function, context: Cl
     this.setValue(context.name, value);
     return value;
   };
+}
+
+export function legacyCash<T>(casheable: Cacheable, name: string, getValue: () => T): T {
+  const cachedValue = casheable.getValue(name);
+  if (cachedValue !== undefined) {
+    return cachedValue;
+  }
+  const value = getValue();
+  casheable.setValue(name, value);
+  return value;
 }
 
 export function measureTime<This, Args extends any[], Return>(
@@ -102,13 +112,17 @@ export function selfTransform<This extends {transform: ((g: Geom3) => Geom3) | u
   };
 }
 
-export function halfToFullY(geom: Geom3, axis: 'x' | 'y' | 'z' = 'y'): Geom3 {
+export function halfToFull(geoms: Geom3[], axis: 'x' | 'y' | 'z' = 'y'): Geom3[] {
   switch (axis) {
     case 'x':
-      return union(geom, mirrorX(geom));
+      return geoms.flatMap((geom) => [geom, mirrorX(geom)]);
     case 'y':
-      return union(geom, mirrorY(geom));
+      return geoms.flatMap((geom) => [geom, mirrorY(geom)]);
     case 'z':
-      return union(geom, mirrorZ(geom));
+      return geoms.flatMap((geom) => [geom, mirrorZ(geom)]);
   }
+}
+
+export function addColor(color: [number, number, number], g: Geom3): Geom3 {
+  return colorize(color, g);
 }

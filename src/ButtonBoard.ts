@@ -1,33 +1,57 @@
 import {Geom3} from '@jscad/modeling/src/geometries/types';
-import {Cacheable, cashGetter, Centered} from './utls';
+import {addColor, Cacheable, Centered, legacyCash} from './utls';
 import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {TactileSwitch} from './TactileSwitch';
-import {
-  mirrorX,
-  rotateZ,
-  translate,
-  translateX,
-  translateY,
-  translateZ,
-} from '@jscad/modeling/src/operations/transforms';
-import {cylinder} from '@jscad/modeling/src/primitives';
+import {mirrorX, mirrorY, rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {cuboid, cylinder} from '@jscad/modeling/src/primitives';
+import {Viewable, ViewerItem} from './types';
 
-export class ButtonBoard extends Cacheable {
+export class ButtonBoard extends Cacheable implements Viewable {
+  public readonly chip = new Chip();
+
   public readonly width = 20;
   public readonly buttonYDistance = 14;
   public readonly buttonXDistance = 13;
   public readonly buttonXDistance2 = 9;
-  public readonly buttonXDistanceFromEdge = 4;
+  public readonly buttonXDistanceFromEdge = 6;
   public readonly screwHoleDistance = 20;
-  public readonly length = 50;
+  public readonly length = this.buttonXDistanceFromEdge + this.buttonXDistance * 2 + this.buttonXDistance2 + 5;
   public readonly thickness = 1.5;
 
-  public get outline(): Geom3 {
-    return union(this.outlineHalf, mirrorX(this.outlineHalf));
+  public get displayName(): string {
+    return 'ButtonBoard';
   }
 
-  public get outlineHalf(): Geom3 {
-    return union(this.boardHalf, ...this.switchesHalf.map((sw) => sw.outline));
+  public get viewerItems(): ViewerItem[] {
+    return legacyCash(this, 'viewerItem', () => {
+      return [
+        {
+          label: 'outline',
+          model: () => this.outline,
+        },
+        {
+          label: 'outlineHalf',
+          model: () => this.outlineHalf,
+        },
+      ];
+    });
+  }
+
+  public get outline(): Geom3[] {
+    return [
+      ...this.outlineHalf,
+      ...(this.outlineHalf.map(mirrorY) as Geom3[]),
+      addColor([0, 0, 0], this.transformChip(this.chip.outline)),
+    ];
+  }
+
+  public get outlineHalf(): Geom3[] {
+    return [addColor([0, 0.6, 0], this.boardHalf), ...this.switchesHalf.map((sw) => sw.outline)];
+  }
+
+  public get looseOutlineHalf(): Geom3[] {
+    // TODO ボードのオフセットを考慮
+    return [addColor([0, 0.6, 0], this.boardHalf), ...this.switchesHalf.map((sw) => sw.looseOutline)];
   }
 
   public get screwHole(): Geom3 {
@@ -37,7 +61,6 @@ export class ButtonBoard extends Cacheable {
     );
   }
 
-  @cashGetter
   public get switchesHalf(): readonly TactileSwitch[] {
     const translateY = this.buttonYDistance / 2;
     const xStart = this.buttonXDistanceFromEdge;
@@ -55,5 +78,19 @@ export class ButtonBoard extends Cacheable {
     const base = translateZ(-this.thickness, Centered.cuboid([this.length, this.width / 2, this.thickness]));
 
     return subtract(base, this.screwHole, ...this.switchesHalf.map((sw) => sw.legHole));
+  }
+
+  private transformChip(chip: Geom3): Geom3 {
+    return translate([30, 0, 0], chip);
+  }
+}
+
+class Chip {
+  public readonly width = 8;
+  public readonly height = 8;
+  public readonly thickness = 0.9;
+
+  public get outline(): Geom3 {
+    return cuboid({size: [this.height, this.width, this.thickness], center: [0, 0, this.thickness / 2]});
   }
 }

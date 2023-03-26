@@ -92,6 +92,7 @@ export class Trigger {
         [50, this.width / 2, 12],
         rotate([0, -Math.PI / 2 - 0.15, 0], extrudeLinear({height: 50}, this.bottomSideCutFace)),
       ),
+      this.underCutArea,
     );
     return result;
   }
@@ -109,10 +110,13 @@ export class Trigger {
   }
 
   public get devSold(): Geom3 {
-    const underCutArea = translate([0, this.width / 4, 15 + 31.5], cuboid({size: [100, this.width / 2, 30]}));
-    const half = subtract(this.outlineHalf, this.devJointHalf, underCutArea);
+    const half = subtract(this.outlineHalf, this.devJointHalf, this.underCutArea);
 
     return union(half, mirror({normal: [0, 1, 0]}, half));
+  }
+
+  public get underCutArea(): Geom3 {
+    return translate([0, this.width / 4, 15 + 31.5], cuboid({size: [100, this.width / 2, 30]}));
   }
 
   private transformForButtonFace(g: Geom3): Geom3 {

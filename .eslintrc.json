@@ -45,7 +45,10 @@
     "@typescript-eslint/ban-ts-comment": "off",
 
     // クラスでないオブジェクトが持つ関数に対しても動いてしまうので、邪魔
-    "@typescript-eslint/unbound-method": "off"
+    "@typescript-eslint/unbound-method": "off",
+
+    // 最新のReact環境では許されるので
+    "react/react-in-jsx-scope": "off"
 
     // "@typescript-eslint/no-inferrable-types": "off",
     // "@typescript-eslint/no-namespace": ["error", {"allowDeclarations": true}],

@@ -31,8 +31,11 @@ interface TriggerFace {
 }
 
 export class Trigger {
-  public readonly width = 42;
-  public readonly length = 50;
+  public static readonly lengthSize = 50;
+  public static readonly width = 50;
+
+  public readonly width = Trigger.width;
+  public readonly length = Trigger.lengthSize;
   public readonly buttonFace = new ButtonFace(this.width);
   public readonly underFace = new UnderFace(this.width);
   public readonly topFace = new TopFace(this.width, this.length);

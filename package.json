@@ -5,6 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev src/main.ts",
+    "build": "ts-node src/main.ts",
     "web": "vite"
   },
   "devDependencies": {
@@ -27,6 +28,7 @@
   },
   "dependencies": {
     "@jscad/modeling": "^2.11.0",
+    "@jscad/obj-serializer": "^2.1.13",
     "@jscad/regl-renderer": "^2.6.5",
     "@jscad/stl-serializer": "^2.1.13",
     "@use-gesture/react": "^10.2.24",

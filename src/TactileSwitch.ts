@@ -1,21 +1,22 @@
 import {Geom3} from '@jscad/modeling/src/geometries/geom3';
 import {cuboid, cylinder} from '@jscad/modeling/src/primitives';
 import {union} from '@jscad/modeling/src/operations/booleans';
-import {Cacheable, octagon} from './utls';
+import {addColor, Cacheable, octagon} from './utls';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {colorize} from '@jscad/modeling/src/colors';
 
 export class TactileSwitch extends Cacheable {
-  public readonly baseRadius = 2.75;
+  public readonly baseRadius = 3.1;
   public readonly baseHeight = 3.5;
   public readonly switchHeight = 6;
-  public readonly switchRadius = 1.5;
+  public readonly switchRadius = 1.6;
   public readonly legHoleWidth = 1.2;
   public readonly legHoleLength = 3;
   public readonly legDistance = 6;
+  public readonly looseOffset = 0.3;
 
-  public readonly switchColor = [0.1, 0.1, 0.1];
+  public readonly switchColor = [0.1, 0.1, 0.1] as const;
 
   public constructor(public readonly transform: (g: Geom3) => Geom3 = (g) => g) {
     super();
@@ -30,15 +31,20 @@ export class TactileSwitch extends Cacheable {
   }
 
   public get looseOutline(): Geom3 {
-    return union(this.transform(this.makeBaseOutline(0.2)), this.transform(this.makeSwitchOutline(0.2)));
+    return union(
+      this.transform(this.makeBaseOutline(this.looseOffset)),
+      this.transform(this.makeSwitchOutline(this.looseOffset + 0.2)),
+    );
   }
 
   public get looseOctagonOutline(): Geom3 {
-    const offset = 0.2;
-    const base = extrudeLinear({height: this.baseHeight + offset}, octagon(this.baseRadius + offset));
+    const base = extrudeLinear(
+      {height: this.baseHeight + this.looseOffset},
+      octagon(this.baseRadius + this.looseOffset),
+    );
     const sw = translateZ(
       this.baseHeight,
-      extrudeLinear({height: this.switchHeight}, octagon(this.switchRadius + offset)),
+      extrudeLinear({height: this.switchHeight}, octagon(this.switchRadius + this.looseOffset)),
     );
     return this.transform(union(base, sw));
   }
@@ -58,7 +64,7 @@ export class TactileSwitch extends Cacheable {
 
   private makeSwitchOutline(offset = 0): Geom3 {
     const height = this.switchHeight + offset;
-    return colorize(
+    return addColor(
       this.switchColor,
       cylinder({
         radius: this.switchRadius + offset,

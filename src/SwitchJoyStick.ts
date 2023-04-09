@@ -182,11 +182,11 @@ class ScrewHole {
   public constructor(public readonly props: ScrewHoleProps) {}
 
   public get outline(): Geom3 {
-    return extrudeLinear(this.thickness, this.makeFace(0));
+    return extrudeLinear({height: this.thickness}, this.makeFace(0));
   }
 
   public get looseOutline(): Geom3 {
-    return extrudeLinear(this.thickness, this.makeFace(0.2));
+    return extrudeLinear({height: this.thickness}, this.makeFace(0.2));
   }
 
   private makeFace(offset: number): Geom2 {

@@ -1,9 +1,10 @@
 import {booleans, expansions, extrusions, primitives, transforms} from '@jscad/modeling';
 import {Geom2, Geom3, Geometry} from '@jscad/modeling/src/geometries/types';
 import {MainBoard} from './MainBoard';
-import {Cacheable, cashGetter, Centered, octagon} from './utls';
+import {Cacheable, cashGetter, Centered, legacyCash, octagon} from './utls';
 import {mirrorY, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {BatteryBoxHolder} from './BatteryBoxHolder';
+import {Viewable, ViewerItem} from './types';
 
 const {rectangle, circle, sphere, polygon} = primitives;
 const {translateX, translate, rotate, mirrorZ, rotateY, rotateZ, rotateX} = transforms;
@@ -16,7 +17,7 @@ const collisionAdjustSize = 0.00001;
 // グリップの傾き 21.6度
 // 電池ボックスの傾き 10度
 
-export class Grip extends Cacheable {
+export class Grip extends Cacheable implements Viewable {
   public readonly board = new MainBoard();
   public readonly batteryBoxHolder = new BatteryBoxHolder();
   public readonly topWallThickness = 1;
@@ -42,6 +43,19 @@ export class Grip extends Cacheable {
   // TODO sketchupモデルの結果値なので、理想的には完成形から逆算すべき
   public readonly jointEndHeight = 10.75;
   public readonly boardScrewHallDistanceFromEnd = 31.2;
+
+  public get displayName(): string {
+    return 'Grip';
+  }
+
+  public get viewerItems(): ViewerItem[] {
+    return legacyCash(this, 'viewerItem', () => {
+      return [
+        {label: 'outline', model: () => this.outline},
+        {label: 'half', model: () => this.half},
+      ];
+    });
+  }
 
   private get outlineBasicFaceHalf(): Geom2 {
     return this.makeBasicFace(this.height, this.width, this.radius);
@@ -101,7 +115,7 @@ export class Grip extends Cacheable {
           this.boardScrewHole.unionTargetHalf,
         ),
         this.boardScrewHole.subtractTarget,
-        this.transformBatteryBoxHolder(expand({delta: 0.2}, this.batteryBoxHolder.outlineHalf)),
+        expand({delta: 0.2}, this.batteryBoxHolder.outlineHalf).map(this.transformBatteryBoxHolder),
         this.topWallSubtractionHalf,
       ),
       // デバッグ時になにか追加したかったらここに追加
@@ -116,18 +130,18 @@ export class Grip extends Cacheable {
     );
   }
 
-  private transformBatteryBoxHolder(batteryBoxHolder: Geom3): Geom3 {
+  private transformBatteryBoxHolder = (batteryBoxHolder: Geom3): Geom3 => {
     return translate(
       [1.8, 0, 7.6],
       rotate([0, -(this.mainRotateDegree - this.batteryBoxRotateDegree) * (Math.PI / 180), 0], batteryBoxHolder),
     );
-  }
+  };
 
   @cashGetter
   public get outlineHalf() {
     return union(
       extrudeLinear({height: this.length}, this.outlineBasicFaceHalf),
-      this.transformBatteryBoxHolder(this.batteryBoxHolder.outlineHalf),
+      this.batteryBoxHolder.outlineHalf.map(this.transformBatteryBoxHolder),
     );
   }
 

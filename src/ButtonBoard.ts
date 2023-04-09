@@ -1,5 +1,5 @@
 import {Geom3} from '@jscad/modeling/src/geometries/types';
-import {addColor, Cacheable, Centered, legacyCash} from './utls';
+import {addColor, Cacheable, Centered, halfToFull, legacyCash} from './utls';
 import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {TactileSwitch} from './TactileSwitch';
 import {mirrorX, mirrorY, rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
@@ -25,24 +25,15 @@ export class ButtonBoard extends Cacheable implements Viewable {
   public get viewerItems(): ViewerItem[] {
     return legacyCash(this, 'viewerItem', () => {
       return [
-        {
-          label: 'outline',
-          model: () => this.outline,
-        },
-        {
-          label: 'outlineHalf',
-          model: () => this.outlineHalf,
-        },
+        {label: 'outline', model: () => this.outline},
+        {label: 'outlineHalf', model: () => this.outlineHalf},
+        {label: 'testBoard', model: () => this.testBoard},
       ];
     });
   }
 
   public get outline(): Geom3[] {
-    return [
-      ...this.outlineHalf,
-      ...(this.outlineHalf.map(mirrorY) as Geom3[]),
-      addColor([0, 0, 0], this.transformChip(this.chip.outline)),
-    ];
+    return [...halfToFull(this.outlineHalf), addColor([0, 0, 0], this.transformChip(this.chip.outline))];
   }
 
   public get outlineHalf(): Geom3[] {
@@ -82,6 +73,12 @@ export class ButtonBoard extends Cacheable implements Viewable {
 
   private transformChip(chip: Geom3): Geom3 {
     return translate([30, 0, 0], chip);
+  }
+
+  public get testBoard(): Geom3[] {
+    const hagasuTokkakari = cuboid({size: [10, 1, 0.8], center: [this.length / 2, this.width / 2 - 0.5, -0.4]});
+    const half = subtract(this.boardHalf, ...this.switchesHalf.map((s) => s.looseOutline), hagasuTokkakari);
+    return [addColor([0, 0.6, 0], union(halfToFull([half])))];
   }
 }
 

@@ -30,7 +30,7 @@ export class SHController extends Cacheable implements Viewable {
   public get outline(): Geom3[] {
     return [
       this.transformGrip(this.grip.outline),
-      ...this.buttonPad.outline.map(this.transformButtonPad),
+      ...this.buttonPad.outline.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
       this.trigger.outline,
     ];
   }
@@ -44,8 +44,8 @@ export class SHController extends Cacheable implements Viewable {
 
   private transformButtonPad = (pad: Geom3): Geom3 => {
     pad = mirrorZ(pad);
-    pad = rotateZ(-degToRad(90 - 20), pad);
-    pad = translate([16, 40, 0], pad);
+    // pad = rotateZ(-degToRad(90 - 20), pad);
+    // pad = translate([16, 40, 0], pad);
     return pad;
   };
 }

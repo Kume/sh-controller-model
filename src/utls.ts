@@ -3,7 +3,7 @@ import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {primitives} from '@jscad/modeling';
 import {Vec2} from '@jscad/modeling/src/maths/vec2';
 import {mirrorX, mirrorY, mirrorZ} from '@jscad/modeling/src/operations/transforms';
-import {colorize} from '@jscad/modeling/src/colors';
+import {colorize, RGB} from '@jscad/modeling/src/colors';
 
 export class Centered {
   public static cuboid(size: Vec3): Geom3 {
@@ -123,6 +123,10 @@ export function halfToFull(geoms: Geom3[], axis: 'x' | 'y' | 'z' = 'y'): Geom3[]
   }
 }
 
-export function addColor(color: [number, number, number], g: Geom3): Geom3 {
-  return colorize(color, g);
+export function addColor(color: readonly [number, number, number], g: Geom3): Geom3 {
+  return colorize(color as RGB, g);
+}
+
+export function rotateVec2([x, y]: readonly [number, number], radian: number): [number, number] {
+  return [x * Math.cos(radian) - y * Math.sin(radian), x * Math.sin(radian) + y * Math.cos(radian)];
 }

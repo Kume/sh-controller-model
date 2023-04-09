@@ -8,7 +8,16 @@ import {SwitchJoyStick} from '../SwitchJoyStick';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
-const viewableValues: readonly Viewable[] = [main, main.buttonPad, main.buttonPad.board, joyStick];
+const viewableValues: readonly Viewable[] = [
+  main,
+  main.buttonPad,
+  main.buttonPad.board,
+  main.buttonPad.natHolder,
+  main.grip,
+  main.grip.batteryBoxHolder,
+  main.grip.batteryBoxHolder.batteryBox,
+  joyStick,
+];
 
 interface ViewerItemState {
   readonly isVisible?: boolean;
@@ -21,7 +30,7 @@ interface ViewableState {
 
 type ViewerState = Record<string, ViewableState | undefined>;
 
-function getVisibleItems(viewables: Viewable[], state: ViewerState): (ViewerItem & {fullName: string})[] {
+function getVisibleItems(viewables: readonly Viewable[], state: ViewerState): (ViewerItem & {fullName: string})[] {
   const items: (ViewerItem & {fullName: string})[] = [];
   for (const viewable of viewables) {
     for (const viewerItem of viewable.viewerItems) {
@@ -48,8 +57,23 @@ export const Viewer: React.FC = () => {
       <ul>
         {viewableValues.map((viewable) => (
           <li key={viewable.displayName}>
-            {viewable.displayName}
-            <ul>
+            <p
+              onClick={() =>
+                setState(
+                  (prev) =>
+                    ({
+                      ...prev,
+                      [viewable.displayName]: {
+                        ...prev[viewable.displayName],
+                        isOpen: !prev[viewable.displayName]?.isOpen,
+                        items: {},
+                      },
+                    } as ViewerState),
+                )
+              }>
+              {viewable.displayName}
+            </p>
+            <ul hidden={!state[viewable.displayName]?.isOpen}>
               {viewable.viewerItems.map((item) => (
                 <li
                   key={item.label}

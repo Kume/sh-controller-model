@@ -508,6 +508,14 @@
   resolved "https://registry.yarnpkg.com/@jscad/modeling/-/modeling-2.11.0.tgz#890e8e3bda0fb89e8905e815eea8302225a12b89"
   integrity sha512-B2GnufqIP6vLwQs9ZWBJRWir0dE9O5EV0Vtz2w9370S6i/6+IQA3Xqhghr8xGdEblKJoJXeE5GOOMUHEsqzoDA==
 
+"@jscad/obj-serializer@^2.1.13":
+  version "2.1.13"
+  resolved "https://registry.yarnpkg.com/@jscad/obj-serializer/-/obj-serializer-2.1.13.tgz#d274101ba274d6ab7799e711ebcb69af95564d7b"
+  integrity sha512-dKLzgtz/s9mRuB1/VxxZGwyYntQsgdMVk9dJ0qEnB0F+nofXCw4FJ9Se0ptgxUNvRxZs6UzxOgT6NI12OGYuDA==
+  dependencies:
+    "@jscad/array-utils" "2.1.4"
+    "@jscad/modeling" "2.11.0"
+
 "@jscad/regl-renderer@^2.6.5":
   version "2.6.5"
   resolved "https://registry.yarnpkg.com/@jscad/regl-renderer/-/regl-renderer-2.6.5.tgz#449917be94d1a5c4917f71e5ae202bed18a4d835"

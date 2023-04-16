@@ -123,7 +123,7 @@ export function halfToFull(geoms: Geom3[], axis: 'x' | 'y' | 'z' = 'y'): Geom3[]
   }
 }
 
-export function addColor(color: readonly [number, number, number], g: Geom3): Geom3 {
+export function addColor(color: readonly [number, number, number, number?], g: Geom3): Geom3 {
   return colorize(color as RGB, g);
 }
 

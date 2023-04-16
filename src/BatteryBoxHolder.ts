@@ -47,7 +47,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
         {label: 'outlineHalf', model: () => this.outlineHalf},
         {label: 'half', model: () => this.half},
         {label: 'full', model: () => this.full},
-        {label: 'fullWithBattery', model: () => this.fullWithBattery},
+        {label: 'fullWithBatteryBox', model: () => this.fullWithBatteryBox},
       ];
     });
   }
@@ -65,6 +65,11 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
         extrudeLinear({height: this.baseLength}, union(translateX(this.baseHeight, topFace), baseRect)),
       ),
     ];
+  }
+
+  /* グリップの領域を削るために極端に大きめに定義した領域 */
+  public get extraLooseOutlineHalf(): Geom3 {
+    return Centered.cuboid([this.baseHeight + this.topHeight, this.width / 2, this.baseLength + 20]);
   }
 
   public get half(): Geom3[] {
@@ -95,11 +100,15 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
     ].map((g) => addColor(this.color, g));
   }
 
+  public get halfWithBatteryBox(): Geom3[] {
+    return [...this.half, this.transformBatteryBox(this.batteryBox.full)];
+  }
+
   public get full(): Geom3[] {
     return halfToFull(this.half);
   }
 
-  public get fullWithBattery(): Geom3[] {
+  public get fullWithBatteryBox(): Geom3[] {
     return [...this.full, this.transformBatteryBox(this.batteryBox.full)];
   }
 

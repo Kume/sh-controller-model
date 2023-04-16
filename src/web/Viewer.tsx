@@ -10,6 +10,8 @@ const main = new SHController();
 const joyStick = new SwitchJoyStick();
 const viewableValues: readonly Viewable[] = [
   main,
+  main.grip.board,
+  main.trigger,
   main.buttonPad,
   main.buttonPad.board,
   main.buttonPad.natHolder,

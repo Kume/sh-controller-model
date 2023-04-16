@@ -21,7 +21,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly startWidth = 20;
   public readonly endWidth = 26;
   public readonly length = 80;
-  public readonly thickness = 15;
+  public readonly thickness = 14;
   public readonly wallThickness = 1.5;
 
   public readonly buttonHamidashi = 2;
@@ -29,7 +29,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly boardDistanceFromStickCenter = 15;
 
   public readonly stickXOffset = 16;
-  public readonly stickRotation = degToRad(26);
+  public readonly stickRotation = degToRad(30);
 
   public readonly outerColor = [0.8, 0.8, 0.8] as const;
 

@@ -1,10 +1,12 @@
 import {booleans, expansions, extrusions, primitives, transforms} from '@jscad/modeling';
 import {Geom2, Geom3, Geometry} from '@jscad/modeling/src/geometries/types';
 import {MainBoard} from './MainBoard';
-import {Cacheable, cashGetter, Centered, legacyCash, octagon} from './utls';
-import {mirrorY, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {addColor, Cacheable, cashGetter, Centered, legacyCash, octagon} from './utls';
+import {mirrorX, mirrorY, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {BatteryBoxHolder} from './BatteryBoxHolder';
 import {Viewable, ViewerItem} from './types';
+import {extrudeRotate} from '@jscad/modeling/src/operations/extrusions';
+import {degToRad} from '@jscad/modeling/src/utils';
 
 const {rectangle, circle, sphere, polygon} = primitives;
 const {translateX, translate, rotate, mirrorZ, rotateY, rotateZ, rotateX} = transforms;
@@ -38,7 +40,7 @@ export class Grip extends Cacheable implements Viewable {
   public readonly topWallLength = 15;
 
   public readonly batteryBoxRotateDegree = 10;
-  public readonly mainRotateDegree = 21.6;
+  public readonly mainRotateDegree = 24;
 
   // TODO sketchupモデルの結果値なので、理想的には完成形から逆算すべき
   public readonly jointEndHeight = 10.75;
@@ -53,15 +55,17 @@ export class Grip extends Cacheable implements Viewable {
       return [
         {label: 'outline', model: () => this.outline},
         {label: 'half', model: () => this.half},
+        {label: 'halfWithBoard', model: () => this.halfWithBoard},
+        {label: 'halfWithBatteryBox', model: () => this.halfWithBatteryBox},
       ];
     });
   }
 
-  private get outlineBasicFaceHalf(): Geom2 {
+  public get outlineBasicFaceHalf(): Geom2 {
     return this.makeBasicFace(this.height, this.width, this.radius);
   }
 
-  private get outlineBasicInnerFaceHalf(): Geom2 {
+  public get outlineBasicInnerFaceHalf(): Geom2 {
     return translateX(
       -this.topWallThickness,
       this.makeBasicFace(
@@ -102,33 +106,41 @@ export class Grip extends Cacheable implements Viewable {
     return union(widthRect, heightRect, corner);
   }
 
-  public get halfWithBoard() {
-    return union(this.half, this.transformMainBoard(this.board.half));
+  public get halfWithBoard(): Geom3[] {
+    return [...this.half, ...this.board.half.map(this.transformMainBoard)];
   }
 
-  public get half() {
-    return union(
+  public get halfWithBatteryBox(): Geom3[] {
+    return [...this.halfWithBoard, ...this.batteryBoxHolder.halfWithBatteryBox.map(this.transformBatteryBoxHolder)];
+  }
+
+  public get half(): Geom3[] {
+    const baseFace = subtract(this.outlineBasicFaceHalf, this.outlineBasicInnerFaceHalf);
+    return [
       subtract(
         union(
-          extrudeLinear({height: this.length}, subtract(this.outlineBasicFaceHalf, this.outlineBasicInnerFaceHalf)),
+          extrudeLinear({height: this.length}, baseFace),
           this.endWallHalf,
           this.boardScrewHole.unionTargetHalf,
+          this.makeJointToGrip(baseFace),
         ),
         this.boardScrewHole.subtractTarget,
-        expand({delta: 0.2}, this.batteryBoxHolder.outlineHalf).map(this.transformBatteryBoxHolder),
+        this.transformBatteryBoxHolder(
+          expand({delta: 0.2}, this.batteryBoxHolder.extraLooseOutlineHalf) as any as Geom3,
+        ),
         this.topWallSubtractionHalf,
       ),
       // デバッグ時になにか追加したかったらここに追加
-    );
+    ];
   }
 
-  private transformMainBoard<G extends Geometry>(g: G): G {
-    const directionAdjusted = rotate([0, -Math.PI / 2, 0], g);
+  private transformMainBoard = <G extends Geometry>(g: G): G => {
+    const directionAdjusted = mirrorX(rotate([0, -Math.PI / 2, 0], g));
     return translate(
       [-this.board.maxZ - this.topWallThickness - this.mainBoardTopMargin, 0, this.endThickness],
       directionAdjusted,
     );
-  }
+  };
 
   private transformBatteryBoxHolder = (batteryBoxHolder: Geom3): Geom3 => {
     return translate(
@@ -137,10 +149,44 @@ export class Grip extends Cacheable implements Viewable {
     );
   };
 
+  public get jointEndHalf(): Geom3 {
+    return addColor(
+      [0.8, 0, 0],
+      subtract(
+        translate(
+          [-this.height, 0, this.length],
+          rotateY(
+            -degToRad(this.mainRotateDegree),
+            translateX(
+              this.height,
+              extrudeLinear({height: 0.0001}, subtract(this.outlineBasicFaceHalf, this.outlineBasicInnerFaceHalf)),
+            ),
+          ),
+        ),
+        this.transformBatteryBoxHolder(
+          expand({delta: 0.2}, this.batteryBoxHolder.extraLooseOutlineHalf) as any as Geom3,
+        ),
+      ),
+    );
+  }
+
+  private makeJointToGrip = (face: Geom2): Geom3 => {
+    return translate(
+      [-this.height, 0, this.length],
+      mirrorY(
+        rotate(
+          [degToRad(90), 0, 0],
+          extrudeRotate({angle: degToRad(this.mainRotateDegree), segments: 90}, translate([this.height, 0], face)),
+        ),
+      ),
+    );
+  };
+
   @cashGetter
   public get outlineHalf() {
     return union(
       extrudeLinear({height: this.length}, this.outlineBasicFaceHalf),
+      this.makeJointToGrip(this.outlineBasicFaceHalf),
       this.batteryBoxHolder.outlineHalf.map(this.transformBatteryBoxHolder),
     );
   }

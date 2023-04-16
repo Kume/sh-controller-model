@@ -13,7 +13,7 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
   public readonly baseWidth = 17.3;
   public readonly baseHeight = 19.1;
   public readonly baseThickness = 5.4;
-  public readonly baseYOffset = 0.5;
+  public readonly baseYOffset = -0.5;
   public readonly stickHeight = 9;
   public readonly stickRadius = 2;
   public readonly stickTopThickness = 3;
@@ -83,6 +83,11 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
         height: this.baseThickness + this.stickHeight,
         radius: this.stickTopRadius + 0.5,
         center: [0, 0, (this.baseThickness + this.stickHeight) / 2],
+      }),
+      cylinder({
+        height: 8,
+        radius: this.stickTopRadius + 3,
+        center: [0, 0, this.baseThickness + this.stickHeight - 8 / 2],
       }),
       addColor([0, 0, 0.9], this.transformCable(extrudeLinear({height: this.cableThickness}, this.cableFace))),
       addColor([0.9, 0.9, 0.9], this.transformConnector(this.connector)),

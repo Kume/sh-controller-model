@@ -19,10 +19,8 @@ export class SHController extends Cacheable implements Viewable {
   public get viewerItems(): ViewerItem[] {
     return legacyCash(this, 'viewerItem', () => {
       return [
-        {
-          label: 'outline',
-          model: () => this.outline,
-        },
+        {label: 'outline', model: () => this.outline},
+        {label: 'gripAndTriggerHalf', model: () => this.gripAndTriggerHalf},
       ];
     });
   }
@@ -35,12 +33,16 @@ export class SHController extends Cacheable implements Viewable {
     ];
   }
 
-  private transformGrip(grip: Geom3): Geom3 {
-    grip = translateZ(-this.grip.length, grip);
-    grip = rotateY(degToRad(90 + 24), grip);
-    grip = translate([-8, 0, 0], grip); // TODO 計算で出す
-    return grip;
+  public get gripAndTriggerHalf(): Geom3[] {
+    return [...this.grip.halfWithBatteryBox.map(this.transformGrip), this.trigger.half];
   }
+
+  private transformGrip = (grip: Geom3): Geom3 => {
+    grip = translate([this.grip.height, 0, -this.grip.length], grip);
+    grip = rotateY(degToRad(90 + this.grip.mainRotateDegree), grip);
+    grip = translate([0, 0, this.trigger.backHeight], grip);
+    return grip;
+  };
 
   private transformButtonPad = (pad: Geom3): Geom3 => {
     pad = mirrorZ(pad);

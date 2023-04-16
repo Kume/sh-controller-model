@@ -1,11 +1,15 @@
 import type {Geom3} from '@jscad/modeling/src/geometries/types';
 import {booleans, expansions, geometries, primitives, transforms} from '@jscad/modeling';
-import {Centered, degreeToRadian, measureTime} from './utls';
+import {addColor, Cacheable, Centered, degreeToRadian, halfToFull, legacyCash, measureTime} from './utls';
 import {Geom2} from '@jscad/modeling/src/geometries/geom2';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {cube, polygon, rectangle} from '@jscad/modeling/src/primitives';
 import {TactileSwitch} from './TactileSwitch';
 import {mirrorY} from '@jscad/modeling/src/operations/transforms';
+import {Viewable, ViewerItem} from './types';
+import {Grip} from './Grip';
+import {degToRad} from '@jscad/modeling/src/utils';
+import {hull} from '@jscad/modeling/src/operations/hulls';
 
 const {cuboid, sphere, line, arc} = primitives;
 const {translateZ, translateX, translateY, translate, rotateX, rotate, rotateY, mirror} = transforms;
@@ -30,19 +34,40 @@ interface TriggerFace {
   readonly outlineLimitHalf: Geom3;
 }
 
-export class Trigger {
+export class Trigger extends Cacheable implements Viewable {
   public static readonly lengthSize = 50;
   public static readonly width = 50;
 
   public readonly width = Trigger.width;
   public readonly length = Trigger.lengthSize;
-  public readonly buttonFace = new ButtonFace(this.width);
   public readonly underFace = new UnderFace(this.width);
   public readonly topFace = new TopFace(this.width, this.length);
   // public readonly length = 55;
   public readonly backHeight = 15;
+  public readonly maxZ = 31.5;
 
   public readonly buttonFaceDegree = 34;
+
+  public readonly grip = new Grip();
+  public readonly innerSmallWidth = this.grip.width - this.grip.thickness * 2;
+  public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
+
+  public get displayName(): string {
+    return 'Trigger';
+  }
+
+  public get viewerItems(): ViewerItem[] {
+    return legacyCash(this, 'viewerItem', () => {
+      return [
+        {label: 'outline', model: () => this.outline},
+        {label: 'outlineHalf2', model: () => this.outlineHalf2},
+        {label: 'innerArea2', model: () => this.innerArea2},
+        {label: 'halfWithGripAndReferenceObject', model: () => this.halfWithGripAndReferenceObject},
+        {label: 'half', model: () => this.half},
+        {label: 'half2', model: () => this.half2},
+      ];
+    });
+  }
 
   public get half(): Geom3 {
     const {faces} = this;
@@ -66,12 +91,24 @@ export class Trigger {
     );
   }
 
+  public get halfWithGripAndReferenceObject(): Geom3[] {
+    return [...this.half2, ...this.grip.halfWithBoard.map(this.transformGrip)];
+  }
+
+  public get halfWithGrip(): Geom3[] {
+    return [...this.half2, ...this.grip.half.map(this.transformGrip)];
+  }
+
+  public get fullWithGrip(): Geom3[] {
+    return halfToFull(this.halfWithGrip);
+  }
+
   private get faces(): {face: TriggerFace; transform: (g: Geom3) => Geom3}[] {
-    return [
+    return legacyCash(this, 'faces', () => [
       {face: this.buttonFace, transform: (g: Geom3) => this.transformForButtonFace(g)},
       {face: this.underFace, transform: (g: Geom3) => this.transformForUnderFace(g)},
       {face: this.topFace, transform: (g: Geom3) => g},
-    ];
+    ]);
   }
 
   public get outline(): Geom3 {
@@ -79,31 +116,92 @@ export class Trigger {
   }
 
   public get outlineHalf(): Geom3 {
-    const {faces} = this;
     let result: Geom3 = geom3.create();
-    for (const {face, transform} of faces) {
+    for (const {face, transform} of this.faces) {
       if (face.solidHalf) {
         result = union(result, transform(face.solidHalf));
       }
     }
-    for (const {face, transform} of faces) {
-      result = subtract(result, transform(face.outlineLimitHalf));
+    result = this.subtractFacesOutlineLimit(result);
+    result = this.subtractExtraCatArea(result);
+    return result;
+  }
+
+  private subtractFacesOutlineLimit(geom: Geom3): Geom3 {
+    for (const {face, transform} of this.faces) {
+      geom = subtract(geom, transform(face.outlineLimitHalf));
     }
-    result = subtract(
-      result,
+    return geom;
+  }
+
+  private subtractExtraCatArea(geom: Geom3): Geom3 {
+    return subtract(
+      geom,
       translate(
         [50, this.width / 2, 12],
         rotate([0, -Math.PI / 2 - 0.15, 0], extrudeLinear({height: 50}, this.bottomSideCutFace)),
       ),
       this.underCutArea,
     );
-    return result;
+  }
+
+  public get half2(): Geom3[] {
+    return [subtract(this.outlineHalf2, this.innerArea2)];
+  }
+
+  public get outlineHalf2(): Geom3[] {
+    const buttonFaceAdditionalLimitation = addColor(
+      [0.8, 0, 0],
+      rotateY(degToRad(10), Centered.cuboid([26, this.width / 2, 40])),
+    );
+    const buttonFace = this.transformForButtonFace(this.buttonFace.solidHalf);
+    const sphereRadius = 1;
+    const buttonFaceBottomEndX =
+      this.length - Math.tan(degToRad(this.buttonFaceDegree)) * this.maxZ - Math.sin(degToRad(this.buttonFaceDegree));
+    const buttonFaceBottomEnd1_1 = [buttonFaceBottomEndX, 0, this.maxZ - sphereRadius] as const;
+    const buttonFaceBottomEnd1_2 = [buttonFaceBottomEndX, 30 / 2, this.maxZ - sphereRadius] as const;
+    const buttonFaceBottomEnd2_1 = [buttonFaceBottomEndX - 3, 0, this.maxZ - sphereRadius] as const;
+    const buttonFaceBottomEnd2_2 = [buttonFaceBottomEndX - 3, 30 / 2, this.maxZ - sphereRadius] as const;
+    const sideSphereCenter1 = [buttonFaceBottomEndX - 8, this.width / 2 - 4, 12] as const;
+    const sideSphereCenter2 = [15, this.width / 2 - sphereRadius, 0] as const;
+    return [
+      subtract(
+        hull(
+          this.transformGrip(this.grip.jointEndHalf),
+          this.subtractExtraCatArea(
+            this.subtractFacesOutlineLimit(subtract(buttonFace, buttonFaceAdditionalLimitation)),
+          ),
+          sphere({center: [...buttonFaceBottomEnd1_1]}),
+          sphere({center: [...buttonFaceBottomEnd1_2]}),
+          sphere({center: [...buttonFaceBottomEnd2_1]}),
+          sphere({center: [...buttonFaceBottomEnd2_2]}),
+          sphere({center: [...sideSphereCenter1]}),
+          sphere({center: [...sideSphereCenter2]}),
+        ),
+        translateY(-10, Centered.cuboid([100, 10, 100])),
+        translateZ(-10, Centered.cuboid([100, 100, 10])),
+      ),
+    ];
+  }
+
+  public get innerArea2(): Geom3[] {
+    return [
+      translateZ(
+        this.backHeight - this.grip.height,
+        rotateY(Math.PI / 2, extrudeLinear({height: 30}, this.grip.outlineBasicInnerFaceHalf)),
+      ),
+      translateX(16, Centered.cuboid([16, this.innerSmallWidth / 2, 24.2])),
+      subtract(
+        this.transformForButtonFace(this.buttonFace.innerAreaHalf),
+        translateZ(this.maxZ - 1.5, Centered.cuboid([100, 100, 100])),
+      ),
+    ];
   }
 
   private get bottomSideCutFace(): Geom2 {
     const width = 5;
     const height = 24;
-    let path = path2.create([
+    const path = path2.create([
       [0, 0],
       [height, -10],
       [height, width],
@@ -124,7 +222,7 @@ export class Trigger {
 
   private transformForButtonFace(g: Geom3): Geom3 {
     // return translateX(this.length, rotateY(-degreeToRadian(90 - 56), g));
-    return translateX(this.length, rotateY(-degreeToRadian(this.buttonFaceDegree), g));
+    return translateX(this.length, rotateY(-degToRad(this.buttonFaceDegree), g));
   }
 
   private transformForUnderFace(g: Geom3): Geom3 {
@@ -138,6 +236,13 @@ export class Trigger {
   public get devJointHalf(): Geom3 {
     return Centered.cuboid([20, 5, 8]);
   }
+
+  private transformGrip = (grip: Geom3): Geom3 => {
+    grip = translate([this.grip.height, 0, -this.grip.length], grip);
+    grip = rotateY(degToRad(90 + this.grip.mainRotateDegree), grip);
+    grip = translate([0, 0, this.backHeight], grip);
+    return grip;
+  };
 }
 
 class TopFace implements TriggerFace {
@@ -170,7 +275,7 @@ class ButtonFace implements TriggerFace {
   private readonly switchDistanceLeftToRight = 14;
   private readonly switchDistanceTopToBottom = 17;
 
-  public constructor(public readonly width: number) {}
+  public constructor(public readonly width: number, public readonly innerSmallWidth: number) {}
   public get solidHalf(): Geom3 {
     return extrudeLinear({height: 50}, this.solidGeom2Half);
   }
@@ -192,6 +297,15 @@ class ButtonFace implements TriggerFace {
     );
   }
 
+  public get innerAreaHalf(): Geom3 {
+    const height = this.topSwitchCenterDistance + this.switchDistanceTopToBottom + 5;
+    const thickness = this.tactileSwitch.height + 1.5 + 2; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
+    return extrudeLinear(
+      {height},
+      translateX(-(1.5 + thickness), Centered.rectangle([thickness, this.innerSmallWidth / 2])),
+    );
+  }
+
   private transformTopSwitch(g: Geom3): Geom3 {
     return translate(
       [-this.frontThickness, this.switchDistanceLeftToRight / 2, this.topSwitchCenterDistance],
@@ -206,7 +320,7 @@ class ButtonFace implements TriggerFace {
     );
   }
 
-  public makeGeom2Half(offset: number): Geom2 {
+  public makeGeom2Half(offset: number, thickness = solidThickness): Geom2 {
     const cornerWidth = 10;
     const cornerHeight = 15;
     let path = path2.create([
@@ -220,8 +334,8 @@ class ButtonFace implements TriggerFace {
     path = path2.appendPoints(
       [
         [-cornerHeight, this.width / 2],
-        [-solidThickness, this.width / 2],
-        [-solidThickness, 0],
+        [-thickness, this.width / 2],
+        [-thickness, 0],
       ],
       path,
     );

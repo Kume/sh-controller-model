@@ -14,7 +14,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
   public readonly buttonXDistance = 13;
   public readonly buttonXDistance2 = 9;
   public readonly buttonXDistanceFromEdge = 6;
-  public readonly screwHoleDistance = 20;
+  public readonly screwHoleDistance = 32;
   public readonly length = this.buttonXDistanceFromEdge + this.buttonXDistance * 2 + this.buttonXDistance2 + 5;
   public readonly thickness = 1.5;
 
@@ -37,7 +37,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   public get outlineHalf(): Geom3[] {
-    return [addColor([0, 0.6, 0], this.boardHalf), ...this.switchesHalf.map((sw) => sw.outline)];
+    return [addColor([0, 0.6, 0, 0.8], this.boardHalf), ...this.switchesHalf.map((sw) => sw.outline)];
   }
 
   public get looseOutlineHalf(): Geom3[] {
@@ -72,7 +72,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   private transformChip(chip: Geom3): Geom3 {
-    return translate([30, 0, 0], chip);
+    return translate([10, 0, 0], chip);
   }
 
   public get testBoard(): Geom3[] {

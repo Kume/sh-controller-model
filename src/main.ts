@@ -31,10 +31,12 @@ const mainBoard = new MainBoard();
 const natHolder = new NatHolder({totalHeight: 7, screwHoleType: 'square', topThickness: 1});
 const main = new SHController();
 
-saveStl('mainBoard.stl', mainBoard.half);
+saveStl('mainBoard.stl', mainBoard.full);
 saveStl('trigger.stl', trigger.devSold);
+saveStl('triggerWithGrip.stl', trigger.fullWithGrip);
 saveStl('natHolder.stl', natHolder.full);
 saveStl('buttonBoard.stl', main.buttonPad.board.boardHalf);
+saveStl('buttonBoardAndStick.stl', main.buttonPad.boardAndStick);
 saveStl('buttonPad.stl', main.buttonPad.full);
 saveStl('buttonPadTestBoard.stl', main.buttonPad.board.testBoard);
 saveStl('main.stl', main.outline);

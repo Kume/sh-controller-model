@@ -12,10 +12,16 @@ import {offset} from '@jscad/modeling/src/operations/expansions';
 import {NatHolder} from './NatHolder';
 import {Trigger} from './Trigger';
 import {hull} from '@jscad/modeling/src/operations/hulls';
+import {Screw} from './Screw';
+import {colors} from './common';
 
 export class ButtonPad extends Cacheable implements Viewable {
   public readonly board = new ButtonBoard();
   public readonly stick = new SwitchJoyStick();
+  public readonly sideScrew = new Screw(7, 2.5, (g) => this.transformSideScrew(g));
+  /* 左右を入れ替えた際に逆サイド用のネジ穴がどこに来るかの位置確認用 */
+  public readonly ghostSideScrew = new Screw(7, 2.5, (g) => this.transformGhostSideScrew(g));
+  public readonly sideScrewDistanceFromEdge = 8;
 
   public readonly width1 = 30;
   public readonly startWidth = 20;
@@ -115,6 +121,7 @@ export class ButtonPad extends Cacheable implements Viewable {
     return [
       subtract(extrudeLinear({height: this.thickness}, this.baseFaceHalf), this.fingerSubtraction),
       ...this.board.outlineHalf.map(this.transformBoard),
+      ...this.positionReferencesHalf,
     ];
   }
 
@@ -127,8 +134,22 @@ export class ButtonPad extends Cacheable implements Viewable {
     ];
   }
 
+  public get positionReferencesHalf(): Geom3[] {
+    return [
+      ...addColor(colors.red, this.sideScrew.outline),
+      ...addColor(colors.translucentRed, this.ghostSideScrew.outline),
+    ];
+  }
+
+  public get positionReferences(): Geom3[] {
+    return halfToFull([
+      ...addColor(colors.red, this.sideScrew.outline),
+      ...addColor(colors.translucentRed, this.ghostSideScrew.outline),
+    ]);
+  }
+
   public get fullWithBoard(): Geom3[] {
-    return [...this.full, ...this.boardAndStick];
+    return [...this.full, ...this.positionReferences, ...this.boardAndStick];
   }
 
   public get half(): Geom3[] {
@@ -220,5 +241,35 @@ export class ButtonPad extends Cacheable implements Viewable {
 
   private transformNatHolder = (g: Geom3): Geom3 => {
     return translate([this.boardX + this.board.screwHoleDistance, 0, this.boardZ], g);
+  };
+
+  private transformSideScrew = (g: Geom3): Geom3 => {
+    return translate(this.sideScrewTransformValues().translate, g);
+  };
+
+  private sideScrewTransformValues() {
+    const [[x1, y1], [x2, y2]] = this.gripJointPoints;
+    const theta = Math.atan2(x2 - x1, y2 - y1);
+    return {
+      theta,
+      translate: [
+        (x1 + x2) / 2 + Math.cos(theta) * this.sideScrewDistanceFromEdge,
+        (y1 + y2) / 2 - Math.sin(theta) * this.sideScrewDistanceFromEdge,
+        this.thickness - this.sideScrew.headHeight,
+      ] as [number, number, number],
+    };
+  }
+
+  private transformGhostSideScrew = (g: Geom3): Geom3 => {
+    const {theta, translate: translateValue} = this.sideScrewTransformValues();
+    const ghostDistance = Math.cos(theta) * translateValue[1] * 4;
+    return translate(
+      [
+        translateValue[0] + Math.sin(theta) * ghostDistance,
+        -translateValue[1] + Math.cos(theta) * ghostDistance,
+        translateValue[2],
+      ],
+      g,
+    );
   };
 }

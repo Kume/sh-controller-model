@@ -18,6 +18,7 @@ const viewableValues: readonly Viewable[] = [
   main.grip,
   main.grip.batteryBoxHolder,
   main.grip.batteryBoxHolder.batteryBox,
+  main.trigger.board,
   joyStick,
 ];
 

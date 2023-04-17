@@ -97,7 +97,8 @@ export function measureTime<This, Args extends any[], Return>(
     const startTime = Date.now();
     const value = target.call(this, ...args);
     // @ts-ignore
-    const className = this.constructor?.name;
+    const className: string = this.constructor?.name ?? '';
+    // eslint-disable-next-line no-console
     console.log(`time ${className}.${context.name.toString()} ${Date.now() - startTime}ms`);
     return value;
   };
@@ -123,8 +124,10 @@ export function halfToFull(geoms: Geom3[], axis: 'x' | 'y' | 'z' = 'y'): Geom3[]
   }
 }
 
-export function addColor(color: readonly [number, number, number, number?], g: Geom3): Geom3 {
-  return colorize(color as RGB, g);
+export function addColor(color: readonly [number, number, number, number?], g: Geom3): Geom3;
+export function addColor(color: readonly [number, number, number, number?], g: Geom3[]): Geom3[];
+export function addColor(color: readonly [number, number, number, number?], g: Geom3 | Geom3[]): Geom3 | Geom3[] {
+  return Array.isArray(g) ? g.map((i) => colorize(color as RGB, i)) : colorize(color as RGB, g);
 }
 
 export function rotateVec2([x, y]: readonly [number, number], radian: number): [number, number] {

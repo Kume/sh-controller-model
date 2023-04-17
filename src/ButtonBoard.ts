@@ -5,6 +5,7 @@ import {TactileSwitch} from './TactileSwitch';
 import {mirrorX, mirrorY, rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {cuboid, cylinder} from '@jscad/modeling/src/primitives';
 import {Viewable, ViewerItem} from './types';
+import {colors} from './common';
 
 export class ButtonBoard extends Cacheable implements Viewable {
   public readonly chip = new Chip();
@@ -37,12 +38,12 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   public get outlineHalf(): Geom3[] {
-    return [addColor([0, 0.6, 0, 0.8], this.boardHalf), ...this.switchesHalf.map((sw) => sw.outline)];
+    return [addColor(colors.translucentBoard, this.boardHalf), ...this.switchesHalf.map((sw) => sw.outline)];
   }
 
   public get looseOutlineHalf(): Geom3[] {
     // TODO ボードのオフセットを考慮
-    return [addColor([0, 0.6, 0], this.boardHalf), ...this.switchesHalf.map((sw) => sw.looseOutline)];
+    return [addColor(colors.board, this.boardHalf), ...this.switchesHalf.map((sw) => sw.looseOutline)];
   }
 
   public get screwHole(): Geom3 {

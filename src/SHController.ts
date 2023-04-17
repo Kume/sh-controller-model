@@ -21,6 +21,7 @@ export class SHController extends Cacheable implements Viewable {
       return [
         {label: 'outline', model: () => this.outline},
         {label: 'gripAndTriggerHalf', model: () => this.gripAndTriggerHalf},
+        {label: 'positionReferences', model: () => this.positionReferences},
       ];
     });
   }
@@ -29,6 +30,14 @@ export class SHController extends Cacheable implements Viewable {
     return [
       this.transformGrip(this.grip.outline),
       ...this.buttonPad.outline.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
+      this.trigger.outline,
+    ];
+  }
+
+  public get positionReferences(): Geom3[] {
+    return [
+      this.transformGrip(this.grip.outline),
+      ...this.buttonPad.positionReferences.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
       this.trigger.outline,
     ];
   }

@@ -10,6 +10,7 @@ import {Viewable, ViewerItem} from './types';
 import {Grip} from './Grip';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {hull} from '@jscad/modeling/src/operations/hulls';
+import {TriggerBoard} from './TriggerBoard';
 
 const {cuboid, sphere, line, arc} = primitives;
 const {translateZ, translateX, translateY, translate, rotateX, rotate, rotateY, mirror} = transforms;
@@ -51,6 +52,10 @@ export class Trigger extends Cacheable implements Viewable {
   public readonly grip = new Grip();
   public readonly innerSmallWidth = this.grip.width - this.grip.thickness * 2;
   public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
+
+  public get board(): TriggerBoard {
+    return this.buttonFace.board;
+  }
 
   public get displayName(): string {
     return 'Trigger';
@@ -268,6 +273,7 @@ class TopFace implements TriggerFace {
  */
 class ButtonFace implements TriggerFace {
   private readonly tactileSwitch = new TactileSwitch();
+  public readonly board = new TriggerBoard();
 
   private readonly frontThickness = this.tactileSwitch.height - 2;
 

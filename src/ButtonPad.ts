@@ -13,7 +13,7 @@ import {NatHolder} from './NatHolder';
 import {Trigger} from './Trigger';
 import {hull} from '@jscad/modeling/src/operations/hulls';
 import {Screw} from './Screw';
-import {colors} from './common';
+import {colors, commonSizeValue} from './common';
 
 export class ButtonPad extends Cacheable implements Viewable {
   public readonly board = new ButtonBoard();
@@ -21,7 +21,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly sideScrew = new Screw(7, 2.5, (g) => this.transformSideScrew(g));
   /* 左右を入れ替えた際に逆サイド用のネジ穴がどこに来るかの位置確認用 */
   public readonly ghostSideScrew = new Screw(7, 2.5, (g) => this.transformGhostSideScrew(g));
-  public readonly sideScrewDistanceFromEdge = 8;
+  public readonly sideScrewDistanceFromEdge = commonSizeValue.buttonPadSideScrewDistanceFromEdge;
 
   public readonly width1 = 30;
   public readonly startWidth = 20;
@@ -31,7 +31,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly wallThickness = 1.5;
 
   public readonly buttonHamidashi = 2;
-  public readonly boardZ = this.thickness - (this.board.switchesHalf[0].height - this.buttonHamidashi);
+  public readonly boardZ = this.thickness - (this.board.switchesHalf[0].height - this.board.switchesHalf[0].protrusion);
   public readonly boardDistanceFromStickCenter = 15;
 
   public readonly stickXOffset = 16;

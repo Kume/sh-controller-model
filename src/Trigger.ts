@@ -5,15 +5,17 @@ import {Geom2} from '@jscad/modeling/src/geometries/geom2';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {cube, polygon, rectangle} from '@jscad/modeling/src/primitives';
 import {TactileSwitch} from './TactileSwitch';
-import {mirrorY} from '@jscad/modeling/src/operations/transforms';
+import {mirrorX, mirrorY, mirrorZ, rotateX, transform} from '@jscad/modeling/src/operations/transforms';
 import {Viewable, ViewerItem} from './types';
 import {Grip} from './Grip';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {hull} from '@jscad/modeling/src/operations/hulls';
 import {TriggerBoard} from './TriggerBoard';
+import {commonSizeValue} from './common';
+import {NatHolder} from './NatHolder';
 
 const {cuboid, sphere, line, arc} = primitives;
-const {translateZ, translateX, translateY, translate, rotateX, rotate, rotateY, mirror} = transforms;
+const {translateZ, translateX, translateY, translate, rotate, rotateY, mirror} = transforms;
 const {union, subtract} = booleans;
 const {path2, geom2, geom3} = geometries;
 const {offset, expand} = expansions;
@@ -21,12 +23,6 @@ const {offset, expand} = expansions;
 const outlineLimitThickness = 50;
 const solidThickness = 25;
 const collisionAdjustSize = 0.001;
-
-interface Wall {
-  readonly soldFaceHalf: Geom2;
-  readonly soldWallHalf: Geom3;
-  readonly limit: Geom3;
-}
 
 interface TriggerFace {
   readonly solidHalf?: Geom3;
@@ -49,9 +45,11 @@ export class Trigger extends Cacheable implements Viewable {
 
   public readonly buttonFaceDegree = 34;
 
-  public readonly grip = new Grip();
+  public readonly grip = new Grip(45 - this.buttonFaceDegree);
   public readonly innerSmallWidth = this.grip.width - this.grip.thickness * 2;
   public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
+
+  public readonly gripJointRotationDegree = this.grip.mainRotateDegree - this.grip.joinRotateDegree;
 
   public get board(): TriggerBoard {
     return this.buttonFace.board;
@@ -97,7 +95,7 @@ export class Trigger extends Cacheable implements Viewable {
   }
 
   public get halfWithGripAndReferenceObject(): Geom3[] {
-    return [...this.half2, ...this.grip.halfWithBoard.map(this.transformGrip)];
+    return [...this.half2, ...this.grip.halfWithBatteryBox.map(this.transformGrip)];
   }
 
   public get halfWithGrip(): Geom3[] {
@@ -151,7 +149,16 @@ export class Trigger extends Cacheable implements Viewable {
   }
 
   public get half2(): Geom3[] {
-    return [subtract(this.outlineHalf2, this.innerArea2)];
+    return [
+      subtract(this.outlineHalf2, this.innerArea2),
+      ...this.buttonFace.boardHalf.map(this.transformForButtonFace),
+      ...this.buttonFace.additionalPartsHalf.map(this.transformForButtonFace),
+      // Centered.cuboid([
+      //   commonSizeValue.buttonPadSideScrewDistanceFromEdge + 6,
+      //   12 / 2,
+      //   this.backHeight - this.grip.thickness,
+      // ]),
+    ];
   }
 
   public get outlineHalf2(): Geom3[] {
@@ -173,9 +180,7 @@ export class Trigger extends Cacheable implements Viewable {
       subtract(
         hull(
           this.transformGrip(this.grip.jointEndHalf),
-          this.subtractExtraCatArea(
-            this.subtractFacesOutlineLimit(subtract(buttonFace, buttonFaceAdditionalLimitation)),
-          ),
+          this.subtractFacesOutlineLimit(subtract(buttonFace, buttonFaceAdditionalLimitation)),
           sphere({center: [...buttonFaceBottomEnd1_1]}),
           sphere({center: [...buttonFaceBottomEnd1_2]}),
           sphere({center: [...buttonFaceBottomEnd2_1]}),
@@ -191,9 +196,9 @@ export class Trigger extends Cacheable implements Viewable {
 
   public get innerArea2(): Geom3[] {
     return [
-      translateZ(
-        this.backHeight - this.grip.height,
-        rotateY(Math.PI / 2, extrudeLinear({height: 30}, this.grip.outlineBasicInnerFaceHalf)),
+      translate(
+        [-5, 0, this.backHeight - this.grip.height],
+        rotateY(Math.PI / 2, extrudeLinear({height: 35}, this.grip.outlineBasicInnerFaceHalf)),
       ),
       translateX(16, Centered.cuboid([16, this.innerSmallWidth / 2, 24.2])),
       subtract(
@@ -225,10 +230,10 @@ export class Trigger extends Cacheable implements Viewable {
     return translate([0, this.width / 4, 15 + 31.5], cuboid({size: [100, this.width / 2, 30]}));
   }
 
-  private transformForButtonFace(g: Geom3): Geom3 {
+  private transformForButtonFace = (g: Geom3): Geom3 => {
     // return translateX(this.length, rotateY(-degreeToRadian(90 - 56), g));
     return translateX(this.length, rotateY(-degToRad(this.buttonFaceDegree), g));
-  }
+  };
 
   private transformForUnderFace(g: Geom3): Geom3 {
     return translateZ(this.backHeight, rotateY(degreeToRadian(56), g));
@@ -276,10 +281,20 @@ class ButtonFace implements TriggerFace {
   public readonly board = new TriggerBoard();
 
   private readonly frontThickness = this.tactileSwitch.height - 2;
+  private readonly thickness = 1.5;
 
   private readonly topSwitchCenterDistance = 17;
   private readonly switchDistanceLeftToRight = 14;
   private readonly switchDistanceTopToBottom = 17;
+  // ボードがunderfaceにギリギリくっつかない程度に調整 (目視)
+  private readonly boardDistance = 9;
+  public readonly boardX = this.board.tactileSwitch.height - this.board.tactileSwitch.protrusion;
+
+  public readonly natHolder = new NatHolder({
+    totalHeight: this.boardX - this.thickness,
+    topThickness: 1,
+    screwHoleType: 'octagon',
+  });
 
   public constructor(public readonly width: number, public readonly innerSmallWidth: number) {}
   public get solidHalf(): Geom3 {
@@ -305,11 +320,31 @@ class ButtonFace implements TriggerFace {
 
   public get innerAreaHalf(): Geom3 {
     const height = this.topSwitchCenterDistance + this.switchDistanceTopToBottom + 5;
-    const thickness = this.tactileSwitch.height + 1.5 + 2; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
+    const thickness = this.tactileSwitch.height + this.thickness + this.tactileSwitch.height - 1; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
     return extrudeLinear(
       {height},
       translateX(-(1.5 + thickness), Centered.rectangle([thickness, this.innerSmallWidth / 2])),
     );
+  }
+
+  public get boardHalf(): Geom3[] {
+    return this.board.half.map(this.transformBoard);
+  }
+
+  public get additionalPartsHalf(): Geom3[] {
+    const height = this.boardX - this.thickness;
+    const screwHoleZ = this.boardDistance + this.board.screwHoleDistance;
+    return [
+      subtract(
+        cuboid({
+          size: [height, this.innerSmallWidth / 2, this.natHolder.minOuterWidth],
+          center: [-height / 2 - this.thickness, this.innerSmallWidth / 4, screwHoleZ],
+        }),
+        this.natHolder.full.map((g) =>
+          translate([-height - this.thickness, 0, screwHoleZ], rotateX(Math.PI, rotateY(Math.PI / 2, g))),
+        ),
+      ),
+    ];
   }
 
   private transformTopSwitch(g: Geom3): Geom3 {
@@ -325,6 +360,10 @@ class ButtonFace implements TriggerFace {
       rotateY(Math.PI / 2, g),
     );
   }
+
+  private transformBoard = (g: Geom3): Geom3 => {
+    return translate([-this.boardX, 0, this.boardDistance], mirrorZ(rotateY(Math.PI / 2, g)));
+  };
 
   public makeGeom2Half(offset: number, thickness = solidThickness): Geom2 {
     const cornerWidth = 10;

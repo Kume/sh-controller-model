@@ -46,6 +46,10 @@ export class Grip extends Cacheable implements Viewable {
   public readonly jointEndHeight = 10.75;
   public readonly boardScrewHallDistanceFromEnd = 31.2;
 
+  public constructor(public readonly joinRotateDegree: number) {
+    super();
+  }
+
   public get displayName(): string {
     return 'Grip';
   }
@@ -156,7 +160,7 @@ export class Grip extends Cacheable implements Viewable {
         translate(
           [-this.height, 0, this.length],
           rotateY(
-            -degToRad(this.mainRotateDegree),
+            -degToRad(this.mainRotateDegree - this.joinRotateDegree),
             translateX(
               this.height,
               extrudeLinear({height: 0.0001}, subtract(this.outlineBasicFaceHalf, this.outlineBasicInnerFaceHalf)),

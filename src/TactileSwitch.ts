@@ -16,6 +16,8 @@ export class TactileSwitch extends Cacheable {
   public readonly legDistance = 6;
   public readonly looseOffset = 0.3;
 
+  public readonly protrusion = 2;
+
   public readonly switchColor = [0.1, 0.1, 0.1] as const;
 
   public constructor(public readonly transform: (g: Geom3) => Geom3 = (g) => g) {

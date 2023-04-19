@@ -5,16 +5,21 @@ import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {rotateY, rotateZ, translate, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {colors} from './common';
 import {cuboid} from '@jscad/modeling/src/primitives';
+import {subtract} from '@jscad/modeling/src/operations/booleans';
+import {Screw} from './Screw';
 
 export class TriggerBoard extends Cacheable implements Viewable {
-  private readonly tactileSwitch = new TactileSwitch();
+  public readonly tactileSwitch = new TactileSwitch();
 
-  private readonly width = 22;
-  private readonly thickness = 1.5;
-  private readonly topSwitchDistance = 7;
-  private readonly switchDistanceLeftToRight = 14;
-  private readonly switchDistanceTopToBottom = 17;
-  private readonly length = this.topSwitchDistance + this.switchDistanceTopToBottom + 5;
+  public readonly width = 22;
+  public readonly thickness = 1.5;
+  public readonly topSwitchDistance = 7;
+  public readonly switchDistanceLeftToRight = 14;
+  public readonly switchDistanceTopToBottom = 17;
+  public readonly length = this.topSwitchDistance + this.switchDistanceTopToBottom + 5;
+
+  public readonly screwHoleDistance = this.topSwitchDistance + this.switchDistanceTopToBottom / 2;
+  public readonly screw = new Screw(7, 2.5, (g) => this.transformScrew(g));
 
   public get displayName(): string {
     return 'TriggerBoard';
@@ -22,11 +27,7 @@ export class TriggerBoard extends Cacheable implements Viewable {
 
   public get viewerItems(): ViewerItem[] {
     return legacyCash(this, 'viewerItem', () => {
-      return [
-        {label: 'half', model: () => this.half},
-        // {label: 'outlineHalf', model: () => this.outlineHalf},
-        // {label: 'testBoard', model: () => this.testBoard},
-      ];
+      return [{label: 'half', model: () => this.half}];
     });
   }
 
@@ -39,7 +40,10 @@ export class TriggerBoard extends Cacheable implements Viewable {
   }
 
   public get boardHalf(): Geom3 {
-    return translateZ(-this.thickness, Centered.cuboid([this.length, this.width / 2, this.thickness]));
+    return subtract(
+      translateZ(-this.thickness, Centered.cuboid([this.length, this.width / 2, this.thickness])),
+      this.screw.outline,
+    );
   }
 
   private transformTopSwitch(g: Geom3): Geom3 {
@@ -48,5 +52,9 @@ export class TriggerBoard extends Cacheable implements Viewable {
 
   private transformBottomSwitch(g: Geom3): Geom3 {
     return translate([this.topSwitchDistance + this.switchDistanceTopToBottom, 0, 0], rotateZ(Math.PI / 2, g));
+  }
+
+  private transformScrew(g: Geom3): Geom3 {
+    return translate([this.screwHoleDistance, 0, 0], g);
   }
 }

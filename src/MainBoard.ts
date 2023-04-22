@@ -37,7 +37,11 @@ export class MainBoard extends Cacheable implements Viewable {
   }
 
   public get height(): number {
-    return this.xiao.height + this.baseThickness + this.legBottomHeight;
+    return legacyCash(this, 'height', () => {
+      const height = this.xiao.height + this.baseThickness + this.legBottomHeight;
+      console.log('mainboard height', height);
+      return height;
+    });
   }
 
   public get baseHalf(): Geom3 {

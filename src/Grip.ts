@@ -7,6 +7,7 @@ import {BatteryBoxHolder} from './BatteryBoxHolder';
 import {Viewable, ViewerItem} from './types';
 import {extrudeRotate} from '@jscad/modeling/src/operations/extrusions';
 import {degToRad} from '@jscad/modeling/src/utils';
+import {commonSizeValue} from './common';
 
 const {rectangle, circle, sphere, polygon} = primitives;
 const {translateX, translate, rotate, mirrorZ, rotateY, rotateZ, rotateX} = transforms;
@@ -21,11 +22,11 @@ const collisionAdjustSize = 0.00001;
 
 export class Grip extends Cacheable implements Viewable {
   public readonly board = new MainBoard();
-  public readonly batteryBoxHolder = new BatteryBoxHolder();
   public readonly topWallThickness = 1;
   public readonly mainBoardTopMargin = 0.5;
   public readonly mainBoardBottomMargin = 0.5;
   public readonly thickness = 1;
+  public readonly sideThickness = 2;
   public readonly height =
     this.topWallThickness + this.board.height + this.mainBoardTopMargin + this.mainBoardBottomMargin + this.thickness;
   public readonly width = 30;
@@ -39,14 +40,18 @@ export class Grip extends Cacheable implements Viewable {
   public readonly switchHoleTopFromUsbHoleBottom = 7.2;
   public readonly topWallLength = 15;
 
-  public readonly batteryBoxRotateDegree = 10;
-  public readonly mainRotateDegree = 24;
+  public readonly mainRotateDegree = commonSizeValue.gripRotateDegree;
 
   // TODO sketchupモデルの結果値なので、理想的には完成形から逆算すべき
   public readonly jointEndHeight = 10.75;
   public readonly boardScrewHallDistanceFromEnd = 31.2;
 
-  public constructor(public readonly joinRotateDegree: number) {
+  public readonly batteryBoxHolderMinZ = 14;
+  public readonly batteryBoxHolder = new BatteryBoxHolder({
+    minXDistanceFromGripBottom: this.height - this.batteryBoxHolderMinZ,
+  });
+
+  public constructor() {
     super();
   }
 
@@ -74,7 +79,7 @@ export class Grip extends Cacheable implements Viewable {
       -this.topWallThickness,
       this.makeBasicFace(
         this.height - this.thickness - this.topWallThickness,
-        this.width - this.thickness * 2,
+        this.width - this.sideThickness * 2,
         this.radius - this.thickness,
       ),
     );
@@ -129,9 +134,7 @@ export class Grip extends Cacheable implements Viewable {
           this.makeJointToGrip(baseFace),
         ),
         this.boardScrewHole.subtractTarget,
-        this.transformBatteryBoxHolder(
-          expand({delta: 0.2}, this.batteryBoxHolder.extraLooseOutlineHalf) as any as Geom3,
-        ),
+        this.transformBatteryBoxHolder(this.batteryBoxHolder.extraLooseOutlineHalf),
         this.topWallSubtractionHalf,
       ),
       // デバッグ時になにか追加したかったらここに追加
@@ -148,8 +151,15 @@ export class Grip extends Cacheable implements Viewable {
 
   private transformBatteryBoxHolder = (batteryBoxHolder: Geom3): Geom3 => {
     return translate(
-      [1.8, 0, 7.6],
-      rotate([0, -(this.mainRotateDegree - this.batteryBoxRotateDegree) * (Math.PI / 180), 0], batteryBoxHolder),
+      [
+        -this.batteryBoxHolderMinZ,
+        0,
+        this.length + (this.height - this.batteryBoxHolderMinZ) * Math.sin(degToRad(this.mainRotateDegree)),
+      ],
+      rotateY(
+        degToRad(commonSizeValue.batteryBoxRotateDegree - this.mainRotateDegree),
+        translateZ(-this.batteryBoxHolder.baseLength, batteryBoxHolder),
+      ),
     );
   };
 
@@ -160,16 +170,14 @@ export class Grip extends Cacheable implements Viewable {
         translate(
           [-this.height, 0, this.length],
           rotateY(
-            -degToRad(this.mainRotateDegree - this.joinRotateDegree),
+            -degToRad(this.mainRotateDegree),
             translateX(
               this.height,
               extrudeLinear({height: 0.0001}, subtract(this.outlineBasicFaceHalf, this.outlineBasicInnerFaceHalf)),
             ),
           ),
         ),
-        this.transformBatteryBoxHolder(
-          expand({delta: 0.2}, this.batteryBoxHolder.extraLooseOutlineHalf) as any as Geom3,
-        ),
+        this.transformBatteryBoxHolder(this.batteryBoxHolder.extraLooseOutlineHalf),
       ),
     );
   }

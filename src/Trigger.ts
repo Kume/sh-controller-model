@@ -13,6 +13,7 @@ import {hull} from '@jscad/modeling/src/operations/hulls';
 import {TriggerBoard} from './TriggerBoard';
 import {commonSizeValue} from './common';
 import {NatHolder} from './NatHolder';
+import {Screw} from './Screw';
 
 const {cuboid, sphere, line, arc} = primitives;
 const {translateZ, translateX, translateY, translate, rotate, rotateY, mirror} = transforms;
@@ -35,21 +36,21 @@ export class Trigger extends Cacheable implements Viewable {
   public static readonly lengthSize = 50;
   public static readonly width = 50;
 
+  public readonly screw = new Screw(7, 2.5, (g) => this.transformScrew(g));
+
   public readonly width = Trigger.width;
   public readonly length = Trigger.lengthSize;
   public readonly underFace = new UnderFace(this.width);
   public readonly topFace = new TopFace(this.width, this.length);
   // public readonly length = 55;
-  public readonly backHeight = 15;
+  public readonly backHeight = commonSizeValue.triggerJointHeight;
   public readonly maxZ = 31.5;
 
   public readonly buttonFaceDegree = 34;
 
-  public readonly grip = new Grip(45 - this.buttonFaceDegree);
-  public readonly innerSmallWidth = this.grip.width - this.grip.thickness * 2;
+  public readonly grip = new Grip();
+  public readonly innerSmallWidth = this.grip.width - this.grip.sideThickness * 2;
   public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
-
-  public readonly gripJointRotationDegree = this.grip.mainRotateDegree - this.grip.joinRotateDegree;
 
   public get board(): TriggerBoard {
     return this.buttonFace.board;
@@ -68,6 +69,7 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'halfWithGripAndReferenceObject', model: () => this.halfWithGripAndReferenceObject},
         {label: 'half', model: () => this.half},
         {label: 'half2', model: () => this.half2},
+        {label: 'fullWithGrip', model: () => this.fullWithGrip},
       ];
     });
   }
@@ -95,7 +97,11 @@ export class Trigger extends Cacheable implements Viewable {
   }
 
   public get halfWithGripAndReferenceObject(): Geom3[] {
-    return [...this.half2, ...this.grip.halfWithBatteryBox.map(this.transformGrip)];
+    return [
+      ...this.half2,
+      ...this.buttonFace.boardHalf.map(this.transformForButtonFace),
+      ...this.grip.halfWithBatteryBox.map(this.transformGrip),
+    ];
   }
 
   public get halfWithGrip(): Geom3[] {
@@ -150,8 +156,13 @@ export class Trigger extends Cacheable implements Viewable {
 
   public get half2(): Geom3[] {
     return [
-      subtract(this.outlineHalf2, this.innerArea2),
-      ...this.buttonFace.boardHalf.map(this.transformForButtonFace),
+      subtract(
+        this.outlineHalf2,
+        this.innerArea2,
+        this.buttonFace.boardLooseOutlineHalf.map(this.transformForButtonFace),
+        this.screw.squareHeadLooseOutline,
+        this.screw.octagonBodyLooseOutline,
+      ),
       ...this.buttonFace.additionalPartsHalf.map(this.transformForButtonFace),
       // Centered.cuboid([
       //   commonSizeValue.buttonPadSideScrewDistanceFromEdge + 6,
@@ -170,25 +181,22 @@ export class Trigger extends Cacheable implements Viewable {
     const sphereRadius = 1;
     const buttonFaceBottomEndX =
       this.length - Math.tan(degToRad(this.buttonFaceDegree)) * this.maxZ - Math.sin(degToRad(this.buttonFaceDegree));
-    const buttonFaceBottomEnd1_1 = [buttonFaceBottomEndX, 0, this.maxZ - sphereRadius] as const;
-    const buttonFaceBottomEnd1_2 = [buttonFaceBottomEndX, 30 / 2, this.maxZ - sphereRadius] as const;
-    const buttonFaceBottomEnd2_1 = [buttonFaceBottomEndX - 3, 0, this.maxZ - sphereRadius] as const;
-    const buttonFaceBottomEnd2_2 = [buttonFaceBottomEndX - 3, 30 / 2, this.maxZ - sphereRadius] as const;
-    const sideSphereCenter1 = [buttonFaceBottomEndX - 8, this.width / 2 - 4, 12] as const;
-    const sideSphereCenter2 = [15, this.width / 2 - sphereRadius, 0] as const;
+
     return [
       subtract(
         hull(
           this.transformGrip(this.grip.jointEndHalf),
           this.subtractFacesOutlineLimit(subtract(buttonFace, buttonFaceAdditionalLimitation)),
-          sphere({center: [...buttonFaceBottomEnd1_1]}),
-          sphere({center: [...buttonFaceBottomEnd1_2]}),
-          sphere({center: [...buttonFaceBottomEnd2_1]}),
-          sphere({center: [...buttonFaceBottomEnd2_2]}),
-          sphere({center: [...sideSphereCenter1]}),
-          sphere({center: [...sideSphereCenter2]}),
+          sphere({center: [buttonFaceBottomEndX, 0, this.maxZ - sphereRadius]}),
+          sphere({center: [buttonFaceBottomEndX, 28 / 2, this.maxZ - sphereRadius]}),
+          sphere({center: [buttonFaceBottomEndX - 3, 0, this.maxZ - sphereRadius]}),
+          sphere({center: [buttonFaceBottomEndX - 3, 28 / 2, this.maxZ - sphereRadius]}),
+          sphere({center: [buttonFaceBottomEndX - 8, this.width / 2 - 4, 12]}),
+          sphere({center: [15, this.width / 2 - sphereRadius, 0]}),
+          sphere({center: [0, this.innerSmallWidth / 2, 0], radius: 0.00001}),
+          sphere({center: [0, this.innerSmallWidth / 2 + this.grip.sideThickness, 0], radius: 0.00001}),
         ),
-        translateY(-10, Centered.cuboid([100, 10, 100])),
+        translate([-10, -10, -10], Centered.cuboid([100, 10, 100])),
         translateZ(-10, Centered.cuboid([100, 100, 10])),
       ),
     ];
@@ -253,6 +261,10 @@ export class Trigger extends Cacheable implements Viewable {
     grip = translate([0, 0, this.backHeight], grip);
     return grip;
   };
+
+  private transformScrew = (g: Geom3): Geom3 => {
+    return translate([4, 0, this.backHeight], g);
+  };
 }
 
 class TopFace implements TriggerFace {
@@ -289,9 +301,10 @@ class ButtonFace implements TriggerFace {
   // ボードがunderfaceにギリギリくっつかない程度に調整 (目視)
   private readonly boardDistance = 9;
   public readonly boardX = this.board.tactileSwitch.height - this.board.tactileSwitch.protrusion;
+  public readonly innerPartThickness = 1.5;
 
   public readonly natHolder = new NatHolder({
-    totalHeight: this.boardX - this.thickness,
+    totalHeight: this.boardX - this.thickness - this.innerPartThickness,
     topThickness: 1,
     screwHoleType: 'octagon',
   });
@@ -320,7 +333,8 @@ class ButtonFace implements TriggerFace {
 
   public get innerAreaHalf(): Geom3 {
     const height = this.topSwitchCenterDistance + this.switchDistanceTopToBottom + 5;
-    const thickness = this.tactileSwitch.height + this.thickness + this.tactileSwitch.height - 1; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
+    const thickness =
+      this.tactileSwitch.height + this.thickness + this.tactileSwitch.height - 1 - this.innerPartThickness; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
     return extrudeLinear(
       {height},
       translateX(-(1.5 + thickness), Centered.rectangle([thickness, this.innerSmallWidth / 2])),
@@ -331,8 +345,12 @@ class ButtonFace implements TriggerFace {
     return this.board.half.map(this.transformBoard);
   }
 
+  public get boardLooseOutlineHalf(): Geom3[] {
+    return this.board.looseOutlineHalf.map(this.transformBoard);
+  }
+
   public get additionalPartsHalf(): Geom3[] {
-    const height = this.boardX - this.thickness;
+    const height = this.boardX - this.thickness - this.innerPartThickness;
     const screwHoleZ = this.boardDistance + this.board.screwHoleDistance;
     return [
       subtract(

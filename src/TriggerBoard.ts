@@ -39,6 +39,14 @@ export class TriggerBoard extends Cacheable implements Viewable {
     ];
   }
 
+  public get looseOutlineHalf(): Geom3[] {
+    return [
+      addColor(colors.translucentBoard, this.boardHalf),
+      this.transformTopSwitch(this.tactileSwitch.looseOctagonOutline),
+      this.transformBottomSwitch(this.tactileSwitch.looseOctagonOutline),
+    ];
+  }
+
   public get boardHalf(): Geom3 {
     return subtract(
       translateZ(-this.thickness, Centered.cuboid([this.length, this.width / 2, this.thickness])),

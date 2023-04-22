@@ -34,6 +34,7 @@ const main = new SHController();
 saveStl('mainBoard.stl', mainBoard.full);
 saveStl('trigger.stl', trigger.devSold);
 saveStl('triggerWithGrip.stl', trigger.fullWithGrip);
+saveStl('batteryBoxHolder.stl', main.grip.batteryBoxHolder.full);
 saveStl('natHolder.stl', natHolder.full);
 saveStl('buttonBoard.stl', main.buttonPad.board.boardHalf);
 saveStl('buttonBoardAndStick.stl', main.buttonPad.boardAndStick);

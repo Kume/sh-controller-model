@@ -30,7 +30,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
   public readonly baseThickness = 1.8;
 
   public readonly topRadius = 3;
-  public readonly topHeight = 3.3 + this.topRadius;
+  public readonly topHeight = 6.8;
   public readonly topWidth = this.width - 0.8 * 2;
   public readonly topLengthMin = 2.3;
   public readonly topLengthMax = 14.3;
@@ -99,6 +99,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
   }
 
   public get half(): Geom3[] {
+    const bottomOffset = 0.5;
     return [
       subtract(
         Centered.cuboid([this.baseHeight, this.width / 2, this.endThickness]),
@@ -114,7 +115,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       translateY(this.width / 2, rotateX(Math.PI / 2, extrudeLinear({height: this.baseThickness}, this.baseSideFace))),
       translateZ(
         this.endThickness,
-        Centered.cuboid([1, this.width / 2 - this.baseThickness - 0.3, this.baseLength - this.endThickness]),
+        Centered.cuboid([1, this.width / 2 - this.baseThickness - bottomOffset, this.baseLength - this.endThickness]),
       ),
       intersect(
         translateZ(
@@ -122,8 +123,8 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
           Centered.cuboid([1, this.width / 2 - this.baseThickness, this.baseLength - this.endThickness]),
         ),
         translateY(
-          this.width / 2 - 0.3,
-          rotateX(Math.PI / 2, extrudeLinear({height: this.baseThickness + 0.3}, this.baseSideFace)),
+          this.width / 2 - bottomOffset,
+          rotateX(Math.PI / 2, extrudeLinear({height: this.baseThickness + bottomOffset}, this.baseSideFace)),
         ),
       ),
       subtract(
@@ -131,7 +132,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
           [-4, this.width / 2 - this.baseThickness - 2, this.baseLength],
           rotateY(
             -degToRad(commonSizeValue.batteryBoxRotateDegree),
-            translateZ(-20, Centered.cuboid([4, 2 - 0.3, 35])),
+            translateZ(-20, Centered.cuboid([4, 2 - bottomOffset, 35])),
           ),
         ),
         Centered.cuboid([10, this.width / 2, this.baseLength]),

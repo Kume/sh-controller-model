@@ -1,8 +1,8 @@
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
-import {addColor, Cacheable, legacyCash} from './utls';
+import {addColor, Cacheable, Centered, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {cuboid, cylinder} from '@jscad/modeling/src/primitives';
-import {rotateZ, translate} from '@jscad/modeling/src/operations/transforms';
+import {rotateZ, translate, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {geometries} from '@jscad/modeling';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {union} from '@jscad/modeling/src/operations/booleans';
@@ -43,7 +43,8 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
     return legacyCash(this, 'viewerItem', () => {
       return [
         {label: 'outline', model: () => this.outline},
-        {label: 'looseOutline', model: () => this.looseOutline},
+        {label: 'looseOutlineForDisplay', model: () => this.looseOutlineForDisplay},
+        {label: 'looseOutlineFotTopJoint', model: () => this.looseOutlineFotTopJoint},
       ];
     });
   }
@@ -76,7 +77,16 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
   }
 
   public get looseOutline(): Geom3[] {
-    // TODO ねじ受けの補強三角部分、ケーブルの余白
+    return [
+      ...this.looseOutlineCommon,
+      this.transformTopRightScrewHole(this.topRightScrewHole.looseOutline),
+      this.transformBottomLeftScrewHole(this.bottomLeftScrewHole.looseOutline),
+    ];
+  }
+
+  private get looseOutlineCommon(): Geom3[] {
+    // TODO ケーブルの余白
+    const headThickness = this.stickHeight - 2.6;
     return [
       addColor([0.1, 0.1, 0.1], this.makeBase(0.2)),
       cylinder({
@@ -85,21 +95,38 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
         center: [0, 0, (this.baseThickness + this.stickHeight) / 2],
       }),
       cylinder({
-        height: 8,
+        height: headThickness,
         radius: this.stickTopRadius + 3,
-        center: [0, 0, this.baseThickness + this.stickHeight - 8 / 2],
+        center: [0, 0, this.baseThickness + this.stickHeight - headThickness / 2],
       }),
+    ];
+  }
+
+  public get looseOutlineForDisplay(): Geom3[] {
+    return [
+      ...this.looseOutlineCommon,
       addColor([0, 0, 0.9], this.transformCable(extrudeLinear({height: this.cableThickness}, this.cableFace))),
       addColor([0.9, 0.9, 0.9], this.transformConnector(this.connector)),
-      this.transformTopRightScrewHole(this.topRightScrewHole.looseOutline),
-      this.transformBottomLeftScrewHole(this.bottomLeftScrewHole.looseOutline),
+    ];
+  }
+
+  public get cableLooseOutline(): Geom3[] {
+    return [addColor([0, 0, 0.9], this.transformCable(Centered.extrudeLinear(3, this.cableFace)))];
+  }
+
+  public get looseOutlineFotTopJoint(): Geom3[] {
+    return [
+      ...this.looseOutlineCommon,
+      this.transformTopRightScrewHole(this.topRightScrewHole.looseOutlineFotTopJoint),
+      this.transformBottomLeftScrewHole(this.bottomLeftScrewHole.looseOutlineFotTopJoint),
+      addColor([0, 0, 0.9], this.transformCable(extrudeLinear({height: this.cableThickness}, this.cableFace))),
     ];
   }
 
   private makeBase(offset = 0): Geom3 {
     return cuboid({
-      size: [this.baseHeight + offset * 2, this.baseWidth + offset * 2, this.baseThickness + offset],
-      center: [0, this.baseYOffset, (this.baseThickness + offset) / 2],
+      size: [this.baseHeight + offset * 2, this.baseWidth + offset * 2, this.baseThickness + offset * 2],
+      center: [0, this.baseYOffset, this.baseThickness / 2 + offset],
     });
   }
 
@@ -192,6 +219,14 @@ class ScrewHole {
 
   public get looseOutline(): Geom3 {
     return extrudeLinear({height: this.thickness}, this.makeFace(0.2));
+  }
+
+  public get looseOutlineFotTopJoint(): Geom3 {
+    const offset = 0.2;
+    return union(
+      translateZ(-1.2, extrudeLinear({height: this.thickness + 1.2}, this.makeFace(offset))),
+      cuboid({size: [1, this.props.width + offset * 2, 1], center: [1 / 2, 0, this.thickness + 1 / 2]}),
+    );
   }
 
   private makeFace(offset: number): Geom2 {

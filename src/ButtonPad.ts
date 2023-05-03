@@ -1,9 +1,18 @@
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
-import {cuboid, polygon, sphere} from '@jscad/modeling/src/primitives';
+import {cuboid, cylinder, polygon, rectangle, sphere} from '@jscad/modeling/src/primitives';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
-import {subtract, union} from '@jscad/modeling/src/operations/booleans';
+import {intersect, subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {ButtonBoard} from './ButtonBoard';
-import {rotateX, rotateY, rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {
+  mirrorZ,
+  rotateX,
+  rotateY,
+  rotateZ,
+  transform,
+  translate,
+  translateX,
+  translateZ,
+} from '@jscad/modeling/src/operations/transforms';
 import {addColor, Cacheable, Centered, halfToFull, legacyCash, rotateVec2} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {SwitchJoyStick} from './SwitchJoyStick';
@@ -14,11 +23,13 @@ import {Trigger} from './Trigger';
 import {hull} from '@jscad/modeling/src/operations/hulls';
 import {Screw} from './Screw';
 import {colors, commonSizeValue} from './common';
+import {transforms} from '@jscad/modeling';
 
 export class ButtonPad extends Cacheable implements Viewable {
   public readonly board = new ButtonBoard();
   public readonly stick = new SwitchJoyStick();
   public readonly sideScrew = new Screw(7, 2.5, (g) => this.transformSideScrew(g));
+  public readonly sideScrewBaseThickness = 1.5;
   /* 左右を入れ替えた際に逆サイド用のネジ穴がどこに来るかの位置確認用 */
   public readonly ghostSideScrew = new Screw(7, 2.5, (g) => this.transformGhostSideScrew(g));
   public readonly sideScrewDistanceFromEdge = commonSizeValue.buttonPadSideScrewDistanceFromEdge;
@@ -27,12 +38,13 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly startWidth = 20;
   public readonly endWidth = 26;
   public readonly length = 80;
-  public readonly thickness = 14;
+  public readonly thickness = 12;
   public readonly wallThickness = 1.5;
+  public readonly coverThickness = 1.5;
 
   public readonly buttonHamidashi = 2;
   public readonly boardZ = this.thickness - (this.board.switchesHalf[0].height - this.board.switchesHalf[0].protrusion);
-  public readonly boardDistanceFromStickCenter = 15;
+  public readonly boardDistanceFromStickCenter = 13.5;
 
   public readonly stickXOffset = 16;
   public readonly stickRotation = degToRad(30);
@@ -40,6 +52,11 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly outerColor = [0.8, 0.8, 0.8] as const;
 
   public readonly boardX = this.stickXOffset + this.boardDistanceFromStickCenter;
+
+  public readonly boardBottomZ = this.boardZ - this.board.thickness;
+  public readonly coverScrew = new Screw(7, 2.5, (g) => this.transformCoverScrew(g));
+  public readonly coverScrewDistance = this.boardX + this.board.screwHoleDistance;
+  public readonly coverMaxHeight = this.thickness - this.sideScrew.headHeight - this.sideScrewBaseThickness;
 
   /* ナナメに取り付けるための自身の変形を定義 */
   public readonly selfTransformParams = {
@@ -82,7 +99,10 @@ export class ButtonPad extends Cacheable implements Viewable {
       return [
         {label: 'outline', model: () => this.outline},
         {label: 'half', model: () => this.half},
+        {label: 'coverHalf', model: () => this.coverHalf},
+        {label: 'halfWithCover', model: () => this.halfWithCover},
         {label: 'full', model: () => this.full},
+        {label: 'coverFull', model: () => this.coverFull},
         {label: 'boardAndStick', model: () => this.boardAndStick},
         {label: 'fullWithBoard', model: () => this.fullWithBoard},
       ];
@@ -129,7 +149,7 @@ export class ButtonPad extends Cacheable implements Viewable {
     return [
       addColor(
         this.outerColor,
-        subtract(union(halfToFull(this.half)), ...this.stick.looseOutline.map(this.transformStick)),
+        subtract(union(halfToFull(this.half)), ...this.stick.looseOutlineFotTopJoint.map(this.transformStick)),
       ),
     ];
   }
@@ -153,14 +173,19 @@ export class ButtonPad extends Cacheable implements Viewable {
   }
 
   public get half(): Geom3[] {
+    const innerAreaFace = subtract(offset({delta: -this.wallThickness}, this.baseFaceHalf), this.backWallArea);
     return [
       addColor(
         this.outerColor,
         subtract(
           extrudeLinear({height: this.thickness}, this.baseFaceHalf),
+          extrudeLinear({height: this.boardZ}, innerAreaFace),
           extrudeLinear(
-            {height: this.boardZ},
-            subtract(offset({delta: -this.wallThickness}, this.baseFaceHalf), this.backWallArea),
+            {height: this.coverMaxHeight},
+            subtract(
+              innerAreaFace,
+              rectangle({size: [this.length, this.board.width + 1.5 * 2], center: [this.length / 2, 0]}),
+            ),
           ),
           translateX(
             this.wallThickness,
@@ -170,7 +195,88 @@ export class ButtonPad extends Cacheable implements Viewable {
           ...this.natHolder.full.map(this.transformNatHolder),
           ...this.dipForBoardHalf,
           this.fingerSubtraction,
+          this.sideScrew.headAndSquareBodyLooseOutline,
         ),
+      ),
+    ];
+  }
+
+  public get halfWithCover(): Geom3[] {
+    return [
+      ...this.half,
+      ...this.board.outlineHalf.map(this.transformBoard),
+      ...this.coverHalf,
+      ...this.coverScrew.outline,
+    ];
+  }
+
+  public get coverHalf(): Geom3[] {
+    const offsetValue = 0.3;
+    const length = this.length - (this.wallThickness + offsetValue) * 2;
+    const endThickness = 2;
+    const baseFace = union(
+      subtract(offset({delta: -this.wallThickness - offsetValue}, this.baseFaceHalf), this.backWallArea),
+      rectangle({
+        size: [length, this.wallThickness + offsetValue],
+        center: [length / 2 + offsetValue + this.wallThickness, (this.wallThickness + offsetValue) / 2],
+      }),
+    );
+    return [
+      addColor(
+        [0.1, 0.1, 0.1, 0.7],
+        subtract(
+          union(
+            extrudeLinear({height: this.coverThickness}, baseFace),
+            cylinder({
+              radius: 4,
+              height: this.boardBottomZ,
+              center: [this.coverScrewDistance, 0, this.boardBottomZ / 2],
+            }),
+            extrudeLinear(
+              {height: this.boardZ},
+              intersect(
+                baseFace,
+                Centered.rectangle([this.boardX - offsetValue, this.board.width / 2 + 1.5 + offsetValue]),
+              ),
+            ),
+            extrudeLinear(
+              {height: this.coverMaxHeight},
+              intersect(
+                baseFace,
+                translate([0, this.board.width / 2 + 1.5 + offsetValue], Centered.rectangle([this.length, 15])),
+              ),
+            ),
+            cuboid({
+              size: [endThickness, this.board.width / 2, this.boardZ],
+              center: [
+                length - endThickness / 2 + this.wallThickness + offsetValue,
+                this.board.width / 4,
+                this.boardZ / 2,
+              ],
+            }),
+            extrudeLinear(
+              {height: this.boardBottomZ},
+              intersect(
+                baseFace,
+                translate(
+                  [this.gripJointPoints[1][0] - 1.5, this.board.width / 2, 0],
+                  Centered.rectangle([this.length - this.gripJointPoints[1][0], 10]),
+                ),
+              ),
+            ),
+          ),
+          this.coverScrew.headAndSquareBodyLooseOutline,
+        ),
+      ),
+    ];
+  }
+
+  public get coverFull(): Geom3[] {
+    return [
+      subtract(
+        union(...halfToFull(this.coverHalf)),
+        ...this.stick.looseOutline.map(this.transformStick),
+        ...this.stick.cableLooseOutline.map(this.transformStick),
       ),
     ];
   }
@@ -217,7 +323,7 @@ export class ButtonPad extends Cacheable implements Viewable {
     return [
       cuboid({
         size: [length, 10.5, thickness],
-        center: [this.boardX + this.board.screwHoleDistance - 5 - length / 2, 0, this.boardZ + thickness / 2],
+        center: [this.coverScrewDistance - 5 - length / 2, 0, this.boardZ + thickness / 2],
       }),
     ];
   }
@@ -236,11 +342,11 @@ export class ButtonPad extends Cacheable implements Viewable {
   };
 
   private transformStick = (g: Geom3): Geom3 => {
-    return translate([this.stickXOffset, 0, this.boardZ - this.board.thickness], rotateZ(this.stickRotation, g));
+    return translate([this.stickXOffset, 0, this.boardBottomZ + 1], rotateZ(this.stickRotation, g));
   };
 
   private transformNatHolder = (g: Geom3): Geom3 => {
-    return translate([this.boardX + this.board.screwHoleDistance, 0, this.boardZ], g);
+    return translate([this.coverScrewDistance, 0, this.boardZ], g);
   };
 
   private transformSideScrew = (g: Geom3): Geom3 => {
@@ -272,4 +378,7 @@ export class ButtonPad extends Cacheable implements Viewable {
       g,
     );
   };
+
+  private transformCoverScrew = (g: Geom3): Geom3 =>
+    translate([this.coverScrewDistance, 0, this.boardBottomZ - 1], mirrorZ(g));
 }

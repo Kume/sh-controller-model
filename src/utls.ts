@@ -2,8 +2,9 @@ import {Vec3} from '@jscad/modeling/src/maths/vec3';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {primitives} from '@jscad/modeling';
 import {Vec2} from '@jscad/modeling/src/maths/vec2';
-import {mirrorX, mirrorY, mirrorZ} from '@jscad/modeling/src/operations/transforms';
+import {mirrorX, mirrorY, mirrorZ, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {colorize, RGB} from '@jscad/modeling/src/colors';
+import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 
 export class Centered {
   public static cuboid(size: Vec3): Geom3 {
@@ -12,6 +13,10 @@ export class Centered {
 
   public static rectangle(size: Vec2): Geom2 {
     return primitives.rectangle({size, center: size.map((v) => v / 2) as [number, number]});
+  }
+
+  public static extrudeLinear(height: number, g: Geom2): Geom3 {
+    return translateZ(-height / 2, extrudeLinear({height}, g));
   }
 }
 

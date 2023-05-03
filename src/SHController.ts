@@ -20,10 +20,21 @@ export class SHController extends Cacheable implements Viewable {
     return legacyCash(this, 'viewerItem', () => {
       return [
         {label: 'outline', model: () => this.outline},
+        {label: 'full', model: () => this.full},
         {label: 'gripAndTriggerHalf', model: () => this.gripAndTriggerHalf},
         {label: 'positionReferences', model: () => this.positionReferences},
       ];
     });
+  }
+
+  public get full(): Geom3[] {
+    return [
+      ...this.buttonPad.full.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
+      ...this.trigger.fullWithGrip,
+      ...this.trigger.grip.batteryBoxHolder.full
+        .map(this.trigger.grip.transformBatteryBoxHolder)
+        .map(this.transformGrip),
+    ];
   }
 
   public get outline(): Geom3[] {

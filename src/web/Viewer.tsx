@@ -5,9 +5,12 @@ import {ButtonPad} from '../ButtonPad';
 import {ButtonBoard} from '../ButtonBoard';
 import {Viewable, ViewerItem} from '../types';
 import {SwitchJoyStick} from '../SwitchJoyStick';
+import {Screw} from '../Screw';
+import {translate} from '@jscad/modeling/src/operations/transforms';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
+const screw = new Screw(7, 2.5, (g) => translate([0, 0, 0], g));
 const viewableValues: readonly Viewable[] = [
   main,
   main.grip.board,
@@ -19,6 +22,7 @@ const viewableValues: readonly Viewable[] = [
   main.grip.batteryBoxHolder,
   main.grip.batteryBoxHolder.batteryBox,
   main.trigger.board,
+  screw,
   joyStick,
 ];
 

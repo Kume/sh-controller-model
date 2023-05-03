@@ -149,7 +149,7 @@ export class Grip extends Cacheable implements Viewable {
     );
   };
 
-  private transformBatteryBoxHolder = (batteryBoxHolder: Geom3): Geom3 => {
+  public transformBatteryBoxHolder = (batteryBoxHolder: Geom3): Geom3 => {
     return translate(
       [
         -this.batteryBoxHolderMinZ,

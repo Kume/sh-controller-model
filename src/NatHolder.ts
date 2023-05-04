@@ -14,12 +14,13 @@ export interface NatHolderProps {
 }
 
 export class NatHolder extends Cacheable implements Viewable {
+  public static readonly minOuterWidth = 9;
   public readonly natHallHeight = 3.4;
   public readonly natHallRadius = 3.3;
   public readonly natEntryHoleLength = 10;
   public readonly bridgeSupporterThickness = 0.4;
 
-  public readonly minOuterWidth = 9; // natHallRadius * 2 + 1(thickness) * 2
+  public readonly minOuterWidth = NatHolder.minOuterWidth; // natHallRadius * 2 + 1(thickness) * 2
 
   public constructor(public readonly props: NatHolderProps) {
     super();

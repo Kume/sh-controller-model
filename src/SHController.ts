@@ -6,11 +6,13 @@ import {mirrorZ, rotateY, rotateZ, translate, translateX, translateZ} from '@jsc
 import {degToRad} from '@jscad/modeling/src/utils';
 import {Cacheable, cashGetter, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
+import {ButtonPadJoint} from './ButtonPadJoint';
 
 export class SHController extends Cacheable implements Viewable {
   public readonly grip = new Grip();
-  public readonly buttonPad = new ButtonPad();
   public readonly trigger = new Trigger();
+  public readonly buttonPadJoint = new ButtonPadJoint(this.trigger.backHeight - this.trigger.grip.thickness);
+  public readonly buttonPad = new ButtonPad(this.buttonPadJoint);
 
   public get displayName(): string {
     return 'SHController';
@@ -29,7 +31,7 @@ export class SHController extends Cacheable implements Viewable {
 
   public get full(): Geom3[] {
     return [
-      ...this.buttonPad.full.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
+      ...this.buttonPad.fullWithCover.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
       ...this.trigger.fullWithGrip,
       ...this.trigger.grip.batteryBoxHolder.full
         .map(this.trigger.grip.transformBatteryBoxHolder)
@@ -54,7 +56,11 @@ export class SHController extends Cacheable implements Viewable {
   }
 
   public get gripAndTriggerHalf(): Geom3[] {
-    return [...this.grip.halfWithBatteryBox.map(this.transformGrip), this.trigger.half];
+    return [
+      ...this.grip.halfWithBatteryBox.map(this.transformGrip),
+      ...this.trigger.half2,
+      ...this.buttonPadJoint.outline.map(this.transformButtonPadJoint),
+    ];
   }
 
   private transformGrip = (grip: Geom3): Geom3 => {
@@ -65,9 +71,10 @@ export class SHController extends Cacheable implements Viewable {
   };
 
   private transformButtonPad = (pad: Geom3): Geom3 => {
-    pad = mirrorZ(pad);
-    // pad = rotateZ(-degToRad(90 - 20), pad);
-    // pad = translate([16, 40, 0], pad);
-    return pad;
+    return mirrorZ(pad);
+  };
+
+  private transformButtonPadJoint = (joint: Geom3): Geom3 => {
+    return mirrorZ(joint);
   };
 }

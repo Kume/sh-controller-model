@@ -11,6 +11,7 @@ import {
   transform,
   translate,
   translateX,
+  translateY,
   translateZ,
 } from '@jscad/modeling/src/operations/transforms';
 import {addColor, Cacheable, Centered, halfToFull, legacyCash, rotateVec2} from './utls';
@@ -23,13 +24,13 @@ import {Trigger} from './Trigger';
 import {hull} from '@jscad/modeling/src/operations/hulls';
 import {Screw} from './Screw';
 import {colors, commonSizeValue} from './common';
-import {transforms} from '@jscad/modeling';
+import {ButtonPadJoint} from './ButtonPadJoint';
 
 export class ButtonPad extends Cacheable implements Viewable {
   public readonly board = new ButtonBoard();
   public readonly stick = new SwitchJoyStick();
-  public readonly sideScrew = new Screw(7, 2.5, (g) => this.transformSideScrew(g));
-  public readonly sideScrewBaseThickness = 1.5;
+  public readonly sideScrew = new Screw(7, commonSizeValue.basicScrewHeadHeight, (g) => this.transformSideScrew(g));
+  public readonly sideScrewBaseThickness = commonSizeValue.buttonPadScrewBaseThickness;
   /* 左右を入れ替えた際に逆サイド用のネジ穴がどこに来るかの位置確認用 */
   public readonly ghostSideScrew = new Screw(7, 2.5, (g) => this.transformGhostSideScrew(g));
   public readonly sideScrewDistanceFromEdge = commonSizeValue.buttonPadSideScrewDistanceFromEdge;
@@ -38,7 +39,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly startWidth = 20;
   public readonly endWidth = 26;
   public readonly length = 80;
-  public readonly thickness = 12;
+  public readonly thickness = commonSizeValue.buttonPadThickness;
   public readonly wallThickness = 1.5;
   public readonly coverThickness = 1.5;
 
@@ -57,6 +58,10 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly coverScrew = new Screw(7, 2.5, (g) => this.transformCoverScrew(g));
   public readonly coverScrewDistance = this.boardX + this.board.screwHoleDistance;
   public readonly coverMaxHeight = this.thickness - this.sideScrew.headHeight - this.sideScrewBaseThickness;
+
+  public constructor(public readonly joint: ButtonPadJoint) {
+    super();
+  }
 
   /* ナナメに取り付けるための自身の変形を定義 */
   public readonly selfTransformParams = {
@@ -105,6 +110,7 @@ export class ButtonPad extends Cacheable implements Viewable {
         {label: 'coverFull', model: () => this.coverFull},
         {label: 'boardAndStick', model: () => this.boardAndStick},
         {label: 'fullWithBoard', model: () => this.fullWithBoard},
+        {label: 'positionReferences', model: () => this.positionReferences},
       ];
     });
   }
@@ -154,18 +160,21 @@ export class ButtonPad extends Cacheable implements Viewable {
     ];
   }
 
+  public get fullWithCover(): Geom3[] {
+    return [...this.full, ...this.coverFull];
+  }
+
   public get positionReferencesHalf(): Geom3[] {
     return [
       ...addColor(colors.red, this.sideScrew.outline),
       ...addColor(colors.translucentRed, this.ghostSideScrew.outline),
+      ...addColor([0, 0, 0.4, 0.5], this.joint.headOutline.map(this.transformJoint)),
+      ...addColor([0, 0, 0.4, 0.5], this.joint.headOutline.map(this.transformGhostJoint)),
     ];
   }
 
   public get positionReferences(): Geom3[] {
-    return halfToFull([
-      ...addColor(colors.red, this.sideScrew.outline),
-      ...addColor(colors.translucentRed, this.ghostSideScrew.outline),
-    ]);
+    return halfToFull(this.positionReferencesHalf);
   }
 
   public get fullWithBoard(): Geom3[] {
@@ -214,16 +223,23 @@ export class ButtonPad extends Cacheable implements Viewable {
     const offsetValue = 0.3;
     const length = this.length - (this.wallThickness + offsetValue) * 2;
     const endThickness = 2;
-    const baseFace = union(
-      subtract(offset({delta: -this.wallThickness - offsetValue}, this.baseFaceHalf), this.backWallArea),
-      rectangle({
-        size: [length, this.wallThickness + offsetValue],
-        center: [length / 2 + offsetValue + this.wallThickness, (this.wallThickness + offsetValue) / 2],
-      }),
+    const baseFace = subtract(
+      union(
+        subtract(
+          offset({delta: -this.wallThickness - offsetValue}, this.baseFaceHalf),
+          offset({delta: offsetValue}, this.backWallArea),
+        ),
+        rectangle({
+          size: [length, this.wallThickness + offsetValue],
+          center: [length / 2 + offsetValue + this.wallThickness, (this.wallThickness + offsetValue) / 2],
+        }),
+      ),
+      translateX(this.boardX, Centered.rectangle([15, this.board.width / 2])),
+      translateX(this.boardX, Centered.rectangle([26, this.board.width / 4])),
     );
     return [
       addColor(
-        [0.1, 0.1, 0.1, 0.7],
+        [0.1, 0.0, 0.2, 0.7],
         subtract(
           union(
             extrudeLinear({height: this.coverThickness}, baseFace),
@@ -232,6 +248,7 @@ export class ButtonPad extends Cacheable implements Viewable {
               height: this.boardBottomZ,
               center: [this.coverScrewDistance, 0, this.boardBottomZ / 2],
             }),
+            // スティックの底のカバー
             extrudeLinear(
               {height: this.boardZ},
               intersect(
@@ -239,6 +256,7 @@ export class ButtonPad extends Cacheable implements Viewable {
                 Centered.rectangle([this.boardX - offsetValue, this.board.width / 2 + 1.5 + offsetValue]),
               ),
             ),
+            // 両サイドの盛り上がり
             extrudeLinear(
               {height: this.coverMaxHeight},
               intersect(
@@ -246,6 +264,12 @@ export class ButtonPad extends Cacheable implements Viewable {
                 translate([0, this.board.width / 2 + 1.5 + offsetValue], Centered.rectangle([this.length, 15])),
               ),
             ),
+            // 前方左右の壁
+            translate(
+              [this.boardX, this.board.width / 2, 0],
+              Centered.cuboid([this.gripJointPoints[1][0] - this.boardX - offsetValue, 1.5 + offsetValue, this.boardZ]),
+            ),
+            // 後方の壁
             cuboid({
               size: [endThickness, this.board.width / 2, this.boardZ],
               center: [
@@ -254,6 +278,7 @@ export class ButtonPad extends Cacheable implements Viewable {
                 this.boardZ / 2,
               ],
             }),
+            // 後方左右の壁
             extrudeLinear(
               {height: this.boardBottomZ},
               intersect(
@@ -266,6 +291,7 @@ export class ButtonPad extends Cacheable implements Viewable {
             ),
           ),
           this.coverScrew.headAndSquareBodyLooseOutline,
+          ...this.joint.looseHeadOutline.map(this.transformJoint),
         ),
       ),
     ];
@@ -353,9 +379,28 @@ export class ButtonPad extends Cacheable implements Viewable {
     return translate(this.sideScrewTransformValues().translate, g);
   };
 
+  private transformJoint = (g: Geom3): Geom3 => {
+    return translateZ(
+      -this.sideScrewBaseThickness - this.joint.screwBaseThickness,
+      this.transformSideScrew(rotateZ(-this.jointRotationRad, g)),
+    );
+  };
+
+  private transformGhostJoint = (g: Geom3): Geom3 => {
+    return translateZ(
+      -this.sideScrewBaseThickness - this.joint.screwBaseThickness,
+      this.transformGhostSideScrew(rotateZ(-this.jointRotationRad * 3, g)),
+    );
+  };
+
+  private get jointRotationRad(): number {
+    const [[x1, y1], [x2, y2]] = this.gripJointPoints;
+    return Math.atan2(x2 - x1, y2 - y1);
+  }
+
   private sideScrewTransformValues() {
     const [[x1, y1], [x2, y2]] = this.gripJointPoints;
-    const theta = Math.atan2(x2 - x1, y2 - y1);
+    const theta = this.jointRotationRad;
     return {
       theta,
       translate: [

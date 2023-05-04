@@ -74,14 +74,14 @@ export class Grip extends Cacheable implements Viewable {
     return this.makeBasicFace(this.height, this.width, this.radius);
   }
 
+  public get innerFaceHeight(): number {
+    return this.height - this.thickness - this.topWallThickness;
+  }
+
   public get outlineBasicInnerFaceHalf(): Geom2 {
     return translateX(
       -this.topWallThickness,
-      this.makeBasicFace(
-        this.height - this.thickness - this.topWallThickness,
-        this.width - this.sideThickness * 2,
-        this.radius - this.thickness,
-      ),
+      this.makeBasicFace(this.innerFaceHeight, this.width - this.sideThickness * 2, this.radius - this.thickness),
     );
   }
 

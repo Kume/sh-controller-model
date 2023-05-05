@@ -13,14 +13,14 @@ const joyStick = new SwitchJoyStick();
 const screw = new Screw(7, 2.5, (g) => translate([0, 0, 0], g));
 const viewableValues: readonly Viewable[] = [
   main,
-  main.grip.board,
+  main.trigger.grip.board,
   main.trigger,
   main.buttonPad,
   main.buttonPad.board,
   main.buttonPad.natHolder,
-  main.grip,
-  main.grip.batteryBoxHolder,
-  main.grip.batteryBoxHolder.batteryBox,
+  main.trigger.grip,
+  main.trigger.grip.batteryBoxHolder,
+  main.trigger.grip.batteryBoxHolder.batteryBox,
   main.trigger.board,
   main.buttonPadJoint,
   screw,

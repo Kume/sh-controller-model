@@ -1,17 +1,15 @@
 import {Geom3} from '@jscad/modeling/src/geometries/types';
-import {Grip} from './Grip';
 import {ButtonPad} from './ButtonPad';
 import {Trigger} from './Trigger';
-import {mirrorZ, rotateY, rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {mirrorZ, rotateY, translate, translateX} from '@jscad/modeling/src/operations/transforms';
 import {degToRad} from '@jscad/modeling/src/utils';
-import {Cacheable, cashGetter, legacyCash} from './utls';
+import {Cacheable, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {ButtonPadJoint} from './ButtonPadJoint';
 
 export class SHController extends Cacheable implements Viewable {
-  public readonly grip = new Grip();
-  public readonly trigger = new Trigger();
-  public readonly buttonPadJoint = new ButtonPadJoint(this.trigger.backHeight - this.trigger.grip.thickness);
+  public readonly buttonPadJoint = new ButtonPadJoint();
+  public readonly trigger = new Trigger(this.buttonPadJoint);
   public readonly buttonPad = new ButtonPad(this.buttonPadJoint);
 
   public get displayName(): string {
@@ -29,6 +27,16 @@ export class SHController extends Cacheable implements Viewable {
     });
   }
 
+  public get printItems(): ViewerItem[] {
+    return [
+      {label: 'triggerAndGrip', model: () => this.trigger.fullWithGrip},
+      {label: 'batteryHolder', model: () => this.trigger.grip.batteryBoxHolder.full},
+      {label: 'joint', model: () => this.buttonPadJoint.outline},
+      {label: 'buttonPad', model: () => this.buttonPad.full},
+      {label: 'buttonPadCover', model: () => this.buttonPad.coverFull},
+    ];
+  }
+
   public get full(): Geom3[] {
     return [
       ...this.buttonPad.fullWithCover.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
@@ -41,31 +49,31 @@ export class SHController extends Cacheable implements Viewable {
 
   public get outline(): Geom3[] {
     return [
-      this.transformGrip(this.grip.outline),
-      ...this.buttonPad.outline.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
-      this.trigger.outline,
+      this.transformGrip(this.trigger.grip.outline),
+      ...this.buttonPad.fullWithCover.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
+      ...halfToFull(this.trigger.outlineHalf2),
     ];
   }
 
   public get positionReferences(): Geom3[] {
     return [
-      this.transformGrip(this.grip.outline),
       ...this.buttonPad.positionReferences.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
-      this.trigger.outline,
+      ...this.trigger.fullWithGrip,
+      ...this.trigger.boardOutline,
     ];
   }
 
   public get gripAndTriggerHalf(): Geom3[] {
     return [
-      ...this.grip.halfWithBatteryBox.map(this.transformGrip),
+      ...this.trigger.grip.halfWithBatteryBox.map(this.transformGrip),
       ...this.trigger.half2,
       ...this.buttonPadJoint.outline.map(this.transformButtonPadJoint),
     ];
   }
 
   private transformGrip = (grip: Geom3): Geom3 => {
-    grip = translate([this.grip.height, 0, -this.grip.length], grip);
-    grip = rotateY(degToRad(90 + this.grip.mainRotateDegree), grip);
+    grip = translate([this.trigger.grip.height, 0, -this.trigger.grip.length], grip);
+    grip = rotateY(degToRad(90 + this.trigger.grip.mainRotateDegree), grip);
     grip = translate([0, 0, this.trigger.backHeight], grip);
     return grip;
   };
@@ -75,6 +83,6 @@ export class SHController extends Cacheable implements Viewable {
   };
 
   private transformButtonPadJoint = (joint: Geom3): Geom3 => {
-    return mirrorZ(joint);
+    return translateX(this.buttonPad.wallThickness, mirrorZ(joint));
   };
 }

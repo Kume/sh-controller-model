@@ -14,6 +14,8 @@ import {TriggerBoard} from './TriggerBoard';
 import {commonSizeValue} from './common';
 import {NatHolder} from './NatHolder';
 import {Screw} from './Screw';
+import {ButtonPadJoint} from './ButtonPadJoint';
+import {BatteryBoxTriggerJoint} from './BatteryBoxTriggerJoint';
 
 const {cuboid, sphere, line, arc} = primitives;
 const {translateZ, translateX, translateY, translate, rotate, rotateY, mirror} = transforms;
@@ -48,12 +50,11 @@ export class Trigger extends Cacheable implements Viewable {
 
   public readonly buttonFaceDegree = 34;
 
-  public readonly grip = new Grip();
   public readonly innerSmallWidth = this.grip.width - this.grip.sideThickness * 2;
   public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
 
-  public get board(): TriggerBoard {
-    return this.buttonFace.board;
+  public constructor(public readonly buttonPadJoint: ButtonPadJoint) {
+    super();
   }
 
   public get displayName(): string {
@@ -71,6 +72,16 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'half2', model: () => this.half2},
         {label: 'fullWithGrip', model: () => this.fullWithGrip},
       ];
+    });
+  }
+
+  public get board(): TriggerBoard {
+    return this.buttonFace.board;
+  }
+
+  public get grip(): Grip {
+    return legacyCash(this, 'grip', () => {
+      return new Grip(this.buttonPadJoint);
     });
   }
 
@@ -94,6 +105,10 @@ export class Trigger extends Cacheable implements Viewable {
       // this.buttonSolidWallHalf,
       this.devSold,
     );
+  }
+
+  public get boardOutline(): Geom3[] {
+    return halfToFull(this.buttonFace.boardHalf).map(this.transformForButtonFace);
   }
 
   public get halfWithGripAndReferenceObject(): Geom3[] {
@@ -164,11 +179,58 @@ export class Trigger extends Cacheable implements Viewable {
         this.screw.octagonBodyLooseOutline,
       ),
       ...this.buttonFace.additionalPartsHalf.map(this.transformForButtonFace),
+      ...this.jointSocket,
       // Centered.cuboid([
       //   commonSizeValue.buttonPadSideScrewDistanceFromEdge + 6,
       //   12 / 2,
       //   this.backHeight - this.grip.thickness,
       // ]),
+    ];
+  }
+
+  public get jointSocket(): Geom3[] {
+    const width = this.grip.width - this.grip.sideThickness * 2;
+    const thickness = commonSizeValue.triggerJointSocketThickness;
+    return [
+      subtract(
+        union(
+          translateZ(
+            this.backHeight - this.grip.thickness,
+            rotateX(
+              -Math.PI / 2,
+              extrudeLinear(
+                {height: width / 2 - 2},
+                polygon({
+                  points: [
+                    [1, 0],
+                    [1, 1],
+                    [0, 0],
+                  ],
+                }),
+              ),
+            ),
+          ),
+          translate(
+            [thickness, 0, this.backHeight - thickness - this.grip.thickness],
+            subtract(
+              Centered.cuboid([commonSizeValue.buttonPadJointLength - thickness, width / 2, thickness]),
+              // ジョイント部分を嵌め込む溝
+              translateX(
+                commonSizeValue.buttonPadWallThickness - 1,
+                Centered.cuboid([commonSizeValue.buttonPadJointLength, this.buttonPadJoint.looseWidth / 2, thickness]),
+              ),
+              translate(
+                [
+                  commonSizeValue.buttonPadJointLength - BatteryBoxTriggerJoint.hookLength - 0.3,
+                  this.buttonPadJoint.looseWidth / 2,
+                  0,
+                ],
+                Centered.cuboid([5, 2, thickness]),
+              ),
+            ),
+          ),
+        ),
+      ),
     ];
   }
 
@@ -208,7 +270,7 @@ export class Trigger extends Cacheable implements Viewable {
         [-5, 0, this.backHeight - this.grip.height],
         rotateY(Math.PI / 2, extrudeLinear({height: 35}, this.grip.outlineBasicInnerFaceHalf)),
       ),
-      translateX(16, Centered.cuboid([16, this.innerSmallWidth / 2, 24.2])),
+      translateX(commonSizeValue.buttonPadJointLength, Centered.cuboid([16, this.innerSmallWidth / 2, 24.2])),
       subtract(
         this.transformForButtonFace(this.buttonFace.innerAreaHalf),
         translateZ(this.maxZ - 1.5, Centered.cuboid([100, 100, 100])),
@@ -263,7 +325,7 @@ export class Trigger extends Cacheable implements Viewable {
   };
 
   private transformScrew = (g: Geom3): Geom3 => {
-    return translate([4, 0, this.backHeight], g);
+    return translate([commonSizeValue.buttonPadJointScrewDistance, 0, this.backHeight], g);
   };
 }
 

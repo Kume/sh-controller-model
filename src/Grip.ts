@@ -8,6 +8,7 @@ import {Viewable, ViewerItem} from './types';
 import {extrudeRotate} from '@jscad/modeling/src/operations/extrusions';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {commonSizeValue} from './common';
+import {ButtonPadJoint} from './ButtonPadJoint';
 
 const {rectangle, circle, sphere, polygon} = primitives;
 const {translateX, translate, rotate, mirrorZ, rotateY, rotateZ, rotateX} = transforms;
@@ -25,8 +26,8 @@ export class Grip extends Cacheable implements Viewable {
   public readonly topWallThickness = 1;
   public readonly mainBoardTopMargin = 0.5;
   public readonly mainBoardBottomMargin = 0.5;
-  public readonly thickness = 1;
-  public readonly sideThickness = 2;
+  public readonly thickness = commonSizeValue.gripThickness;
+  public readonly sideThickness = commonSizeValue.gripSideThickness;
   public readonly height =
     this.topWallThickness + this.board.height + this.mainBoardTopMargin + this.mainBoardBottomMargin + this.thickness;
   public readonly width = 30;
@@ -47,11 +48,8 @@ export class Grip extends Cacheable implements Viewable {
   public readonly boardScrewHallDistanceFromEnd = 31.2;
 
   public readonly batteryBoxHolderMinZ = 14;
-  public readonly batteryBoxHolder = new BatteryBoxHolder({
-    minXDistanceFromGripBottom: this.height - this.batteryBoxHolderMinZ,
-  });
 
-  public constructor() {
+  public constructor(public readonly buttonPadJoint: ButtonPadJoint) {
     super();
   }
 
@@ -67,6 +65,15 @@ export class Grip extends Cacheable implements Viewable {
         {label: 'halfWithBoard', model: () => this.halfWithBoard},
         {label: 'halfWithBatteryBox', model: () => this.halfWithBatteryBox},
       ];
+    });
+  }
+
+  public get batteryBoxHolder(): BatteryBoxHolder {
+    return legacyCash(this, 'batteryBoxHolder', () => {
+      return new BatteryBoxHolder({
+        minXDistanceFromGripBottom: this.height - this.batteryBoxHolderMinZ,
+        jointOffset: this.buttonPadJoint.looseWidth / 2,
+      });
     });
   }
 

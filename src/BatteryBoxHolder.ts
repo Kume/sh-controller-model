@@ -3,6 +3,8 @@ import {Viewable} from './types';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {circle, cuboid, polygon, rectangle, roundedCuboid} from '@jscad/modeling/src/primitives';
 import {
+  mirrorZ,
+  rotate,
   rotateX,
   rotateY,
   translate,
@@ -12,17 +14,19 @@ import {
 } from '@jscad/modeling/src/operations/transforms';
 import {intersect, subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
-import {hull} from '@jscad/modeling/src/operations/hulls';
-import {degToRad, radToDeg} from '@jscad/modeling/src/utils';
+import {degToRad} from '@jscad/modeling/src/utils';
 import {commonSizeValue} from './common';
 import {offset} from '@jscad/modeling/src/operations/expansions';
+import {BatteryBoxTriggerJoint} from './BatteryBoxTriggerJoint';
 
 interface BatteryBoxHolderProps {
   readonly minXDistanceFromGripBottom: number;
+  readonly jointOffset: number;
 }
 
 export class BatteryBoxHolder extends Cacheable implements Viewable {
   public readonly batteryBox = new BatteryBox();
+  public readonly joint = new BatteryBoxTriggerJoint();
 
   public readonly width = 30;
   public readonly baseHeight = 11.2;
@@ -127,16 +131,21 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
           rotateX(Math.PI / 2, extrudeLinear({height: this.baseThickness + bottomOffset}, this.baseSideFace)),
         ),
       ),
+      // トリガーとの接合用の棒
       subtract(
-        translate(
-          [-4, this.width / 2 - this.baseThickness - 2, this.baseLength],
-          rotateY(
-            -degToRad(commonSizeValue.batteryBoxRotateDegree),
-            translateZ(-20, Centered.cuboid([4, 2 - bottomOffset, 35])),
+        union(
+          translate(
+            [-0.5, this.props.jointOffset, this.baseLength],
+            rotate(
+              [0, -degToRad(commonSizeValue.batteryBoxRotateDegree + 90), 0],
+              translate([0, 0, 0], mirrorZ(this.joint.main)),
+            ),
           ),
+          ...this.jointTail,
         ),
         Centered.cuboid([10, this.width / 2, this.baseLength]),
       ),
+      this.gripJoint,
       subtract(
         translate(
           [this.baseHeight, 0, this.baseLength - this.topLengthMax],
@@ -152,6 +161,59 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       //   extrudeLinear({height: this.topEndThickness}, this.makeTopFaceHalf()),
       // ),
     ].map((g) => addColor(this.color, g));
+  }
+
+  public get jointTail(): Geom3[] {
+    const length = 35;
+    const height = 3;
+    return [
+      translate(
+        [-height, this.props.jointOffset, this.baseLength - length],
+        Centered.cuboid([height, this.joint.widthForPrint, length]),
+      ),
+      translate(
+        [0, this.props.jointOffset + this.joint.widthForPrint, this.baseLength - 35 - height],
+        rotateX(
+          Math.PI / 2,
+          extrudeLinear(
+            {height: this.joint.widthForPrint},
+            polygon({
+              points: [
+                [-height, height],
+                [0, 0],
+                [0, height],
+              ],
+            }),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  public get gripJoint(): Geom3 {
+    const width = 2;
+    const height = 5;
+    const length = 16;
+    const yOffset = this.width / 2 - width - commonSizeValue.gripSideThickness - 0.3;
+
+    // 以下、CGモデルを目で見て適当に調整した値
+    const jointOffsetZ = 8.5;
+    const jointLength = 7;
+
+    return union(
+      subtract(
+        translate(
+          [-height - 3.5, yOffset, 0],
+          rotateY(
+            degToRad(commonSizeValue.gripRotateDegree - commonSizeValue.batteryBoxRotateDegree),
+            Centered.cuboid([height, width, length]),
+          ),
+        ),
+        // 印刷時の底面を揃えるために削る部分
+        cuboid({size: [20, 20, 20], center: [-10, 10, -10]}),
+      ),
+      translate([-height, yOffset, jointOffsetZ], Centered.cuboid([height, width, jointLength])),
+    );
   }
 
   public get baseSideFace(): Geom2 {

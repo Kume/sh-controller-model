@@ -4,6 +4,8 @@ import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {intersect, subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {ButtonBoard} from './ButtonBoard';
 import {
+  mirrorX,
+  mirrorY,
   mirrorZ,
   rotateX,
   rotateY,
@@ -40,7 +42,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly endWidth = 26;
   public readonly length = 80;
   public readonly thickness = commonSizeValue.buttonPadThickness;
-  public readonly wallThickness = 1.5;
+  public readonly wallThickness = commonSizeValue.buttonPadWallThickness;
   public readonly coverThickness = 1.5;
 
   public readonly buttonHamidashi = 2;
@@ -132,7 +134,8 @@ export class ButtonPad extends Cacheable implements Viewable {
       [1, 0, 0],
       hull([
         sphere({radius: 0.01, center: [this.length, this.endWidth / 2, 0]}),
-        sphere({radius: 0.01, center: [x2 + 6, this.endWidth / 2, 0]}),
+        sphere({radius: 0.01, center: [x2 + 14, this.endWidth / 2, 0]}),
+        sphere({radius: 0.01, center: [x2 + 8, this.endWidth / 2 + 5, 0]}),
         sphere({radius: 0.01, center: [x2, y2, 0]}),
         sphere({radius: 0.01, center: [x2 + 6, y2, 11]}),
       ]),
@@ -168,8 +171,8 @@ export class ButtonPad extends Cacheable implements Viewable {
     return [
       ...addColor(colors.red, this.sideScrew.outline),
       ...addColor(colors.translucentRed, this.ghostSideScrew.outline),
-      ...addColor([0, 0, 0.4, 0.5], this.joint.headOutline.map(this.transformJoint)),
-      ...addColor([0, 0, 0.4, 0.5], this.joint.headOutline.map(this.transformGhostJoint)),
+      ...addColor([0, 0, 0.4, 0.7], this.joint.headOutline.map(this.transformJoint)),
+      ...addColor([0, 0, 0.4, 0.7], this.joint.headOutline.map(this.transformGhostJoint)),
     ];
   }
 
@@ -203,8 +206,12 @@ export class ButtonPad extends Cacheable implements Viewable {
           ...this.board.looseOutlineHalf.map(this.transformBoard),
           ...this.natHolder.full.map(this.transformNatHolder),
           ...this.dipForBoardHalf,
+
+          // 人差し指が引っかからないようにするためのナナメのくぼみ
           this.fingerSubtraction,
           this.sideScrew.headAndSquareBodyLooseOutline,
+          // トリガーの前方ジョイント部分と重なる部分を削る
+          mirrorY(this.joint.looseHeadOutline.map(this.transformGhostJoint)),
         ),
       ),
     ];
@@ -234,6 +241,7 @@ export class ButtonPad extends Cacheable implements Viewable {
           center: [length / 2 + offsetValue + this.wallThickness, (this.wallThickness + offsetValue) / 2],
         }),
       ),
+      // コネクタ用の穴
       translateX(this.boardX, Centered.rectangle([15, this.board.width / 2])),
       translateX(this.boardX, Centered.rectangle([26, this.board.width / 4])),
     );
@@ -289,9 +297,16 @@ export class ButtonPad extends Cacheable implements Viewable {
                 ),
               ),
             ),
+            // 後方左右の壁のくぼみ部分対応
+            translate(
+              [this.gripJointPoints[1][0] - 3, this.board.width / 2 - 1, 0],
+              Centered.cuboid([10 + 3 * 2, 1, this.boardBottomZ]),
+            ),
           ),
           this.coverScrew.headAndSquareBodyLooseOutline,
           ...this.joint.looseHeadOutline.map(this.transformJoint),
+          // トリガーとの接合部分を避けるためのくぼみ
+          translate([this.gripJointPoints[1][0], this.board.width / 2, 0], Centered.cuboid([10, 1, 10])),
         ),
       ),
     ];
@@ -345,7 +360,7 @@ export class ButtonPad extends Cacheable implements Viewable {
 
   public get dipForBoardHalf(): Geom3[] {
     const thickness = this.natHolder.natHallHeight + this.natHolder.props.topThickness;
-    const length = 15;
+    const length = 25;
     return [
       cuboid({
         size: [length, 10.5, thickness],

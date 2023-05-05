@@ -1,8 +1,8 @@
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {circle, cuboid, square} from '@jscad/modeling/src/primitives';
-import {Cacheable, hexagon, legacyCash, octagon} from './utls';
-import {union} from '@jscad/modeling/src/operations/booleans';
+import {Cacheable, Centered, hexagon, legacyCash, octagon} from './utls';
+import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {rotateZ, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {Viewable, ViewerItem} from './types';
 
@@ -11,19 +11,24 @@ export interface NatHolderProps {
   readonly topThickness: number;
   readonly screwHoleType: 'circle' | 'octagon' | 'square';
   readonly screwHoleOffset?: number;
+  readonly natEntryHoleLength?: number;
 }
 
 export class NatHolder extends Cacheable implements Viewable {
   public static readonly minOuterWidth = 9;
   public readonly natHallHeight = 3.4;
   public readonly natHallRadius = 3.3;
-  public readonly natEntryHoleLength = 10;
   public readonly bridgeSupporterThickness = 0.4;
+  public readonly minimumOutlineThickness = 1;
 
   public readonly minOuterWidth = NatHolder.minOuterWidth; // natHallRadius * 2 + 1(thickness) * 2
 
   public constructor(public readonly props: NatHolderProps) {
     super();
+  }
+
+  public get natEntryHoleLength(): number {
+    return this.props.natEntryHoleLength ?? 10;
   }
 
   public get displayName(): string {
@@ -35,8 +40,35 @@ export class NatHolder extends Cacheable implements Viewable {
       return [
         {label: 'full', model: () => this.full},
         {label: 'screwHole', model: () => this.screwHole},
+        {label: 'minimumOutline', model: () => this.minimumOutline},
       ];
     });
+  }
+
+  public get minimumOutline(): Geom3[] {
+    return [subtract(this.makeOutline(), this.full)];
+  }
+
+  public get minimumLooseOutline(): Geom3[] {
+    return this.makeOutline(0.3);
+  }
+
+  private makeOutline(offset = 0): Geom3[] {
+    return [
+      union(
+        rotateZ(
+          Math.PI / 2,
+          extrudeLinear(
+            {height: this.props.totalHeight},
+            hexagon(this.natHallRadius + this.minimumOutlineThickness + offset, 'max'),
+          ),
+        ),
+        cuboid({
+          size: [this.natEntryHoleLength + offset, this.minimumOutlineWidth(offset), this.props.totalHeight],
+          center: [-(this.natEntryHoleLength + offset) / 2, 0, this.props.totalHeight / 2],
+        }),
+      ),
+    ];
   }
 
   public get full(): Geom3[] {
@@ -64,8 +96,12 @@ export class NatHolder extends Cacheable implements Viewable {
     }
   }
 
-  private get screwHallRadius(): number {
+  public get screwHallRadius(): number {
     return 1.5 + (this.props.screwHoleOffset ?? 0.1);
+  }
+
+  public minimumOutlineWidth(offset = 0): number {
+    return (this.natHallRadius + this.minimumOutlineThickness + offset) * 2 * Math.cos(Math.PI / 6);
   }
 
   public get natHall(): Geom3[] {

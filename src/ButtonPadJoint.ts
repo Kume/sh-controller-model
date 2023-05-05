@@ -4,23 +4,38 @@ import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {cuboid} from '@jscad/modeling/src/primitives';
 import {NatHolder} from './NatHolder';
 import {commonSizeValue} from './common';
-import {translate} from '@jscad/modeling/src/operations/transforms';
+import {mirrorZ, translate, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {subtract, union} from '@jscad/modeling/src/operations/booleans';
+import {BatteryBoxTriggerJoint} from './BatteryBoxTriggerJoint';
+
+const looseOutlineOffset = 0.3;
 
 export class ButtonPadJoint extends Cacheable implements Viewable {
-  public readonly natHolder = new NatHolder({screwHoleType: 'square', topThickness: 1, totalHeight: 5});
-  public readonly screwBaseThickness = 1.5;
+  public readonly screwBaseThickness = 2;
   public readonly height =
     commonSizeValue.buttonPadThickness -
     commonSizeValue.basicScrewHeadHeight -
     commonSizeValue.buttonPadScrewBaseThickness -
     this.screwBaseThickness;
+  public readonly natHolder = new NatHolder({
+    screwHoleType: 'octagon',
+    topThickness: 1 + this.screwBaseThickness,
+    totalHeight: this.height + this.screwBaseThickness,
+    natEntryHoleLength:
+      commonSizeValue.buttonPadSideScrewDistanceFromEdge - commonSizeValue.buttonPadWallThickness - looseOutlineOffset,
+  });
+
+  public readonly bottomNatHolder = new NatHolder({
+    screwHoleType: 'octagon',
+    topThickness: 1.5,
+    totalHeight: 7,
+  });
   // TODO 外側ギリギリになるように調整された値なので、計算で出す
   public readonly additionalLength = 2;
-  public readonly width = this.natHolder.minOuterWidth;
-
-  public constructor(public readonly bottomHeight: number) {
-    super();
-  }
+  public readonly width = this.natHolder.minimumOutlineWidth();
+  public readonly wideWidth = this.width + 4;
+  public readonly looseWidth = this.natHolder.minimumOutlineWidth(looseOutlineOffset);
+  public readonly bottomHeight = commonSizeValue.triggerJointHeight - commonSizeValue.gripThickness;
 
   public get displayName(): string {
     return 'ButtonPadJoint';
@@ -46,8 +61,8 @@ export class ButtonPadJoint extends Cacheable implements Viewable {
 
   public get outline(): Geom3[] {
     return [
-      ...this.headOutline.map((g) => translate([this.width / 2 + this.additionalLength, 0, this.height], g)),
-      ...this.bottomOutline,
+      ...this.headOutline.map((g) => translate([this.natHolder.natEntryHoleLength, 0, this.height], g)),
+      subtract(this.bottomOutline, this.bottomNatHolder.full.map(this.transformBottomNatHolder)),
     ];
   }
 
@@ -56,22 +71,46 @@ export class ButtonPadJoint extends Cacheable implements Viewable {
   }
 
   private makeHeadOutline(offset = 0): Geom3[] {
+    const bridgeWidth = 4 - offset;
     return [
-      cuboid({size: [6, this.width, this.screwBaseThickness], center: [0, 0, this.screwBaseThickness / 2]}),
-      cuboid({
-        size: [this.width + this.additionalLength + offset, this.width + offset * 2, this.height],
-        center: [-(this.additionalLength - offset) / 2, 0, -this.height / 2],
-      }),
+      translateZ(
+        this.screwBaseThickness,
+        mirrorZ(
+          subtract(
+            offset > 0 ? this.natHolder.minimumLooseOutline : this.natHolder.minimumOutline,
+            cuboid({
+              size: [bridgeWidth, this.looseWidth, this.screwBaseThickness],
+              center: [bridgeWidth / 2 + this.natHolder.screwHallRadius, 0, this.screwBaseThickness / 2],
+            }),
+          ),
+        ),
+      ) as any as Geom3,
     ];
   }
 
   public makeBottomOutline(offset = 0): Geom3[] {
-    const length = this.width + this.additionalLength + offset;
+    const length = commonSizeValue.buttonPadJointLength - commonSizeValue.buttonPadWallThickness + offset;
+    const height = this.bottomHeight - looseOutlineOffset + offset;
+    const widePartHeight =
+      height - BatteryBoxTriggerJoint.height - commonSizeValue.triggerJointSocketThickness - looseOutlineOffset;
     return [
-      cuboid({
-        size: [length, this.width + offset * 2, this.bottomHeight],
-        center: [length / 2, 0, -this.bottomHeight / 2],
-      }),
+      union(
+        cuboid({
+          size: [length, this.width + offset * 2, height],
+          center: [length / 2, 0, -height / 2],
+        }),
+        cuboid({
+          size: [length, this.wideWidth + offset * 2, widePartHeight],
+          center: [length / 2, 0, -widePartHeight / 2],
+        }),
+      ),
     ];
   }
+
+  private transformBottomNatHolder = (g: Geom3): Geom3 => {
+    return translate(
+      [commonSizeValue.buttonPadJointScrewDistance - commonSizeValue.buttonPadWallThickness, 0, -this.bottomHeight],
+      g,
+    );
+  };
 }

@@ -7,7 +7,10 @@ export const colors = {
 
 // 循環参照してしまうような定数定義はここで行う
 export const commonSizeValue = {
-  buttonPadSideScrewDistanceFromEdge: 7,
+  gripThickness: 1,
+  gripSideThickness: 2,
+  buttonPadSideScrewDistanceFromEdge: 6.5,
+  /** トリガーとグリップの接続部分の高さ */
   triggerJointHeight: 15,
   /** メイン(トリガー等)部分に対する電池ボックスの傾き */
   batteryBoxRotateDegree: 10,
@@ -19,4 +22,10 @@ export const commonSizeValue = {
   buttonPadThickness: 12,
   /** ネジ締結部分の厚さ */
   buttonPadScrewBaseThickness: 1.5,
+  buttonPadWallThickness: 1.5,
+
+  buttonPadJointLength: 16,
+  buttonPadJointScrewDistance: 5,
+
+  triggerJointSocketThickness: 1,
 };

@@ -5,9 +5,6 @@ import objSerializer from '@jscad/obj-serializer';
 import fs from 'fs';
 import {Geometry} from '@jscad/modeling/src/geometries/types';
 import * as path from 'path';
-import {MainBoard} from './MainBoard';
-import {Trigger} from './Trigger';
-import {NatHolder} from './NatHolder';
 import {SHController} from './SHController';
 
 function saveStl(fileName: string, geom: Geometry | Geometry[]) {
@@ -26,21 +23,8 @@ function saveObj(fileName: string, geom: Geometry | Geometry[]) {
   console.log(`output ${fileName}`);
 }
 
-const trigger = new Trigger();
-const mainBoard = new MainBoard();
-const natHolder = new NatHolder({totalHeight: 7, screwHoleType: 'square', topThickness: 1});
 const main = new SHController();
-
-saveStl('mainBoard.stl', mainBoard.full);
-saveStl('trigger.stl', trigger.devSold);
-saveStl('triggerWithGrip.stl', trigger.fullWithGrip);
-saveStl('batteryBoxHolder.stl', main.grip.batteryBoxHolder.full);
-saveStl('natHolder.stl', natHolder.full);
-saveStl('buttonBoard.stl', main.buttonPad.board.boardHalf);
-saveStl('buttonBoardAndStick.stl', main.buttonPad.boardAndStick);
-saveStl('buttonPad.stl', main.buttonPad.full);
-saveStl('buttonPadTestBoard.stl', main.buttonPad.board.testBoard);
-saveStl('main.stl', main.outline);
+main.printItems.forEach((i) => saveStl(`${i.label}.stl`, i.model()));
 
 if (process.env.npm_lifecycle_script?.startsWith('ts-node-dev')) {
   // yarn dev で起動した場合のみ、ts-node-devでwatchするためにプログラムを終了させない。

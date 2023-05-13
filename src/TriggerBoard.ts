@@ -29,6 +29,7 @@ export class TriggerBoard extends Cacheable implements Viewable {
     return legacyCash(this, 'viewerItem', () => {
       return [
         {label: 'half', model: () => this.half},
+        {label: 'full', model: () => this.full},
         {label: 'testBoard', model: () => this.testBoard},
       ];
     });
@@ -40,6 +41,10 @@ export class TriggerBoard extends Cacheable implements Viewable {
       this.transformTopSwitch(this.tactileSwitch.outline),
       this.transformBottomSwitch(this.tactileSwitch.outline),
     ];
+  }
+
+  public get full(): Geom3[] {
+    return halfToFull(this.half);
   }
 
   public get looseOutlineHalf(): Geom3[] {

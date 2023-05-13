@@ -34,6 +34,9 @@ export class SHController extends Cacheable implements Viewable {
       {label: 'joint', model: () => this.buttonPadJoint.outline},
       {label: 'buttonPad', model: () => this.buttonPad.full},
       {label: 'buttonPadCover', model: () => this.buttonPad.coverFull},
+      {label: 'buttonPadBoard', model: () => this.buttonPad.board.testBoard},
+      {label: 'triggerBoard', model: () => this.trigger.board.testBoard},
+      {label: 'mainBoard', model: () => this.trigger.grip.board.testBoard},
     ];
   }
 

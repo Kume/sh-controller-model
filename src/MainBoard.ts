@@ -16,7 +16,7 @@ export class MainBoard extends Cacheable implements Viewable {
   public readonly baseThickness = 1.5;
 
   public readonly legBottomHeight = 2;
-  public readonly screwHoleDistance = 35;
+  public readonly screwHoleDistance = 30;
 
   public get displayName(): string {
     return 'MainBoard';
@@ -28,6 +28,7 @@ export class MainBoard extends Cacheable implements Viewable {
         {label: 'baseHalf', model: () => this.baseHalf},
         {label: 'half', model: () => this.half},
         {label: 'full', model: () => this.full},
+        {label: 'testBoard', model: () => this.testBoard},
       ];
     });
   }
@@ -39,7 +40,7 @@ export class MainBoard extends Cacheable implements Viewable {
   public get height(): number {
     return legacyCash(this, 'height', () => {
       const height = this.xiao.height + this.baseThickness + this.legBottomHeight;
-      console.log('mainboard height', height);
+      // console.log('mainboard height', height);
       return height;
     });
   }
@@ -75,6 +76,18 @@ export class MainBoard extends Cacheable implements Viewable {
 
   public get full(): Geom3[] {
     return halfToFull(this.half);
+  }
+
+  public get testBoard(): Geom3[] {
+    const hagasuTokkakari = cuboid({size: [10, 1, 0.8], center: [this.baseHeight / 2, this.baseWidth / 2 - 0.5, -0.4]});
+    const legHoleWidth = 0.8;
+    const legHoleLength = this.xiao.boardHeight;
+    const legHole = translate(
+      [0.6, this.xiao.boardWidth / 2 - this.xiao.legThickness / 2 - legHoleWidth / 2, -this.baseThickness],
+      Centered.cuboid([legHoleLength - 1.2, legHoleWidth, this.baseThickness]),
+    );
+    const half = subtract(mirrorZ(this.baseHalf), hagasuTokkakari, legHole);
+    return [addColor([0, 0.6, 0], union(halfToFull([half])))];
   }
 }
 

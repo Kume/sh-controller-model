@@ -1,11 +1,11 @@
-import {addColor, Cacheable, Centered, legacyCash} from './utls';
+import {addColor, Cacheable, Centered, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {TactileSwitch} from './TactileSwitch';
 import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {rotateY, rotateZ, translate, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {colors} from './common';
 import {cuboid} from '@jscad/modeling/src/primitives';
-import {subtract} from '@jscad/modeling/src/operations/booleans';
+import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {Screw} from './Screw';
 
 export class TriggerBoard extends Cacheable implements Viewable {
@@ -27,7 +27,10 @@ export class TriggerBoard extends Cacheable implements Viewable {
 
   public get viewerItems(): ViewerItem[] {
     return legacyCash(this, 'viewerItem', () => {
-      return [{label: 'half', model: () => this.half}];
+      return [
+        {label: 'half', model: () => this.half},
+        {label: 'testBoard', model: () => this.testBoard},
+      ];
     });
   }
 
@@ -51,6 +54,8 @@ export class TriggerBoard extends Cacheable implements Viewable {
     return subtract(
       translateZ(-this.thickness, Centered.cuboid([this.length, this.width / 2, this.thickness])),
       this.screw.outline,
+      this.transformTopSwitch(this.tactileSwitch.legHole),
+      this.transformBottomSwitch(this.tactileSwitch.legHole),
     );
   }
 
@@ -64,5 +69,11 @@ export class TriggerBoard extends Cacheable implements Viewable {
 
   private transformScrew(g: Geom3): Geom3 {
     return translate([this.screwHoleDistance, 0, 0], g);
+  }
+
+  public get testBoard(): Geom3[] {
+    const hagasuTokkakari = cuboid({size: [10, 1, 0.8], center: [this.length / 2, this.width / 2 - 0.5, -0.4]});
+    const half = subtract(this.boardHalf, hagasuTokkakari);
+    return [addColor([0, 0.6, 0], union(halfToFull([half])))];
   }
 }

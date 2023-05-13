@@ -45,7 +45,7 @@ export class Grip extends Cacheable implements Viewable {
 
   // TODO sketchupモデルの結果値なので、理想的には完成形から逆算すべき
   public readonly jointEndHeight = 10.75;
-  public readonly boardScrewHallDistanceFromEnd = 31.2;
+  public readonly boardScrewHallDistanceFromEnd = this.board.screwHoleDistance + this.endThickness;
 
   public readonly batteryBoxHolderMinZ = 14;
 

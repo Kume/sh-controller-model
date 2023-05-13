@@ -40,7 +40,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   public readonly width1 = 30;
   public readonly startWidth = 20;
   public readonly endWidth = 26;
-  public readonly length = 80;
+  public readonly length = 82;
   public readonly thickness = commonSizeValue.buttonPadThickness;
   public readonly wallThickness = commonSizeValue.buttonPadWallThickness;
   public readonly coverThickness = 1.5;
@@ -192,6 +192,8 @@ export class ButtonPad extends Cacheable implements Viewable {
         subtract(
           extrudeLinear({height: this.thickness}, this.baseFaceHalf),
           extrudeLinear({height: this.boardZ}, innerAreaFace),
+
+          // 左右の凹み (ネジ止め用の厚みに合わせた部分)
           extrudeLinear(
             {height: this.coverMaxHeight},
             subtract(
@@ -199,9 +201,11 @@ export class ButtonPad extends Cacheable implements Viewable {
               rectangle({size: [this.length, this.board.width + 1.5 * 2], center: [this.length / 2, 0]}),
             ),
           ),
+
+          // offsetの都合上真ん中にできてしまった壁を取り除く
           translateX(
             this.wallThickness,
-            Centered.cuboid([this.length - this.wallThickness * 2, this.wallThickness, this.boardZ]),
+            Centered.cuboid([this.length - this.wallThickness * 2, this.wallThickness + 0.0001, this.boardZ]),
           ),
           ...this.board.looseOutlineHalf.map(this.transformBoard),
           ...this.natHolder.full.map(this.transformNatHolder),
@@ -210,6 +214,7 @@ export class ButtonPad extends Cacheable implements Viewable {
           // 人差し指が引っかからないようにするためのナナメのくぼみ
           this.fingerSubtraction,
           this.sideScrew.headAndSquareBodyLooseOutline,
+
           // トリガーの前方ジョイント部分と重なる部分を削る
           mirrorY(this.joint.looseHeadOutline.map(this.transformGhostJoint)),
         ),
@@ -227,7 +232,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   }
 
   public get coverHalf(): Geom3[] {
-    const offsetValue = 0.3;
+    const offsetValue = 0.35;
     const length = this.length - (this.wallThickness + offsetValue) * 2;
     const endThickness = 2;
     const baseFace = subtract(
@@ -274,8 +279,8 @@ export class ButtonPad extends Cacheable implements Viewable {
             ),
             // 前方左右の壁
             translate(
-              [this.boardX, this.board.width / 2, 0],
-              Centered.cuboid([this.gripJointPoints[1][0] - this.boardX - offsetValue, 1.5 + offsetValue, this.boardZ]),
+              [this.boardX, this.board.width / 2 + 0.7, 0],
+              Centered.cuboid([this.gripJointPoints[1][0] - this.boardX - offsetValue, 0.8 + offsetValue, this.boardZ]),
             ),
             // 後方の壁
             cuboid({

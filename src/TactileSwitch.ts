@@ -11,6 +11,7 @@ export class TactileSwitch extends Cacheable {
   public readonly baseHeight = 3.5;
   public readonly switchHeight = 6;
   public readonly switchRadius = 1.6;
+  public readonly looseSwitchRadius = 2.5;
   public readonly legHoleWidth = 1.2;
   public readonly legHoleLength = 3;
   public readonly legDistance = 6;
@@ -35,7 +36,7 @@ export class TactileSwitch extends Cacheable {
   public get looseOutline(): Geom3 {
     return union(
       this.transform(this.makeBaseOutline(this.looseOffset)),
-      this.transform(this.makeSwitchOutline(this.looseOffset + 0.2)),
+      this.transform(this.makeSwitchOutline(this.looseSwitchRadius, this.switchHeight + this.looseOffset)),
     );
   }
 
@@ -64,16 +65,8 @@ export class TactileSwitch extends Cacheable {
     return this.transform(this.makeSwitchOutline());
   }
 
-  private makeSwitchOutline(offset = 0): Geom3 {
-    const height = this.switchHeight + offset;
-    return addColor(
-      this.switchColor,
-      cylinder({
-        radius: this.switchRadius + offset,
-        height,
-        center: [0, 0, this.baseHeight + height / 2],
-      }),
-    );
+  private makeSwitchOutline(radius = this.switchRadius, height = this.switchHeight): Geom3 {
+    return addColor(this.switchColor, cylinder({radius, height, center: [0, 0, this.baseHeight + height / 2]}));
   }
 
   public get legHole(): Geom3 {

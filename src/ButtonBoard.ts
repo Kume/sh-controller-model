@@ -13,7 +13,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
   public readonly width = 20;
   public readonly buttonYDistance = 14;
   public readonly buttonXDistance = 13;
-  public readonly buttonXDistance2 = 9;
+  public readonly buttonXDistance2 = 11;
   public readonly buttonXDistanceFromEdge = 6;
   public readonly screwHoleDistance = 32;
   public readonly length = this.buttonXDistanceFromEdge + this.buttonXDistance * 2 + this.buttonXDistance2 + 5;

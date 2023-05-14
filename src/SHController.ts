@@ -9,8 +9,8 @@ import {ButtonPadJoint} from './ButtonPadJoint';
 
 export class SHController extends Cacheable implements Viewable {
   public readonly buttonPadJoint = new ButtonPadJoint();
-  public readonly trigger = new Trigger(this.buttonPadJoint);
   public readonly buttonPad = new ButtonPad(this.buttonPadJoint);
+  public readonly trigger = new Trigger(this.buttonPadJoint, this.buttonPad.jointRotationRad);
 
   public get displayName(): string {
     return 'SHController';
@@ -67,6 +67,7 @@ export class SHController extends Cacheable implements Viewable {
       ...this.buttonPad.positionReferences.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
       ...this.trigger.fullWithGrip,
       ...this.trigger.boardOutline,
+      ...halfToFull(this.trigger.buttonFace.jointHalf),
     ];
   }
 

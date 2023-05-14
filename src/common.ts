@@ -20,6 +20,7 @@ export const commonSizeValue = {
   basicScrewHeadHeight: 2.5,
 
   buttonPadThickness: 12,
+  buttonPadRotationDegree: -76,
   /** ネジ締結部分の厚さ */
   buttonPadScrewBaseThickness: 1.5,
   buttonPadWallThickness: 1.5,

@@ -67,7 +67,7 @@ export class ButtonPad extends Cacheable implements Viewable {
 
   /* ナナメに取り付けるための自身の変形を定義 */
   public readonly selfTransformParams = {
-    rotationDegree: -76,
+    rotationDegree: commonSizeValue.buttonPadRotationDegree,
     translate: {
       x: 16,
       y: 40,
@@ -416,7 +416,7 @@ export class ButtonPad extends Cacheable implements Viewable {
     );
   };
 
-  private get jointRotationRad(): number {
+  public get jointRotationRad(): number {
     const [[x1, y1], [x2, y2]] = this.gripJointPoints;
     return Math.atan2(x2 - x1, y2 - y1);
   }

@@ -5,7 +5,7 @@ import {Geom2} from '@jscad/modeling/src/geometries/geom2';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {cube, polygon, rectangle} from '@jscad/modeling/src/primitives';
 import {TactileSwitch} from './TactileSwitch';
-import {mirrorX, mirrorY, mirrorZ, rotateX, transform} from '@jscad/modeling/src/operations/transforms';
+import {mirrorX, mirrorY, mirrorZ, rotateX, rotateZ, transform} from '@jscad/modeling/src/operations/transforms';
 import {Viewable, ViewerItem} from './types';
 import {Grip} from './Grip';
 import {degToRad} from '@jscad/modeling/src/utils';
@@ -51,9 +51,8 @@ export class Trigger extends Cacheable implements Viewable {
   public readonly buttonFaceDegree = commonSizeValue.triggerButtonFaceRotateDegree;
 
   public readonly innerSmallWidth = this.grip.width - this.grip.sideThickness * 2;
-  public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
 
-  public constructor(public readonly buttonPadJoint: ButtonPadJoint) {
+  public constructor(public readonly buttonPadJoint: ButtonPadJoint, public readonly jointRotation: number) {
     super();
   }
 
@@ -73,6 +72,12 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'fullWithGrip', model: () => this.fullWithGrip},
         {label: 'jointHalf', model: () => this.buttonFace.jointHalf},
       ];
+    });
+  }
+
+  public get buttonFace(): ButtonFace {
+    return legacyCash(this, 'buttonFace', () => {
+      return new ButtonFace(this.width, this.innerSmallWidth, this.jointRotation);
     });
   }
 
@@ -374,7 +379,18 @@ class ButtonFace implements TriggerFace {
     screwHoleType: 'octagon',
   });
 
-  public constructor(public readonly width: number, public readonly innerSmallWidth: number) {}
+  public readonly jointNatHolder = new NatHolder({
+    totalHeight: this.boardX - this.thickness - this.jointMainThickness,
+    topThickness: 1,
+    natEntryHoleLength: 5,
+    screwHoleType: 'octagon',
+  });
+
+  public constructor(
+    public readonly width: number,
+    public readonly innerSmallWidth: number,
+    public readonly jointRotation: number,
+  ) {}
   public get solidHalf(): Geom3 {
     return extrudeLinear({height: 50}, this.solidGeom2Half);
   }
@@ -384,45 +400,54 @@ class ButtonFace implements TriggerFace {
     return [
       addColor(
         [0.5, 0.2, 0.5],
-        subtract(
-          translate(
-            [-this.boardX, 0, this.boardDistance],
-            subtract(
-              union(
-                Centered.cuboid([this.jointMainThickness, this.board.width / 2, this.board.length]),
-                Centered.cuboid([
-                  this.boardX - this.thickness,
-                  this.board.width / 2,
-                  this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset,
-                ]),
-                translateZ(
-                  this.board.screwHoleDistance + this.natHolder.minOuterWidth / 2 + offset,
+        union(
+          subtract(
+            translate(
+              [-this.boardX, 0, this.boardDistance],
+              subtract(
+                union(
+                  Centered.cuboid([this.jointMainThickness, this.board.width / 2, this.board.length]),
                   Centered.cuboid([
                     this.boardX - this.thickness,
                     this.board.width / 2,
-                    this.board.length - this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset * 2,
+                    this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset,
+                  ]),
+                  translateZ(
+                    this.board.screwHoleDistance + this.natHolder.minOuterWidth / 2 + offset,
+                    Centered.cuboid([
+                      this.boardX - this.thickness,
+                      this.board.width / 2,
+                      this.board.length - this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset * 2,
+                    ]),
+                  ),
+                ),
+                // 角の部分が衝突してるので削る
+                translate(
+                  [this.boardX - this.thickness - 2, 0, this.board.length],
+                  rotateY(Math.PI / 6, Centered.cuboid([3, this.board.width / 2, 1])),
+                ),
+                // ネジ穴部分を削る
+                // 今の印刷想定だと丸く削るとうまく印刷できないので、四角く削る
+                translate(
+                  [0, 0, this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset],
+                  Centered.cuboid([
+                    this.jointMainThickness,
+                    this.board.screw.radius + offset,
+                    this.natHolder.minOuterWidth + offset * 2,
                   ]),
                 ),
               ),
-              // 角の部分が衝突してるので削る
-              translate(
-                [this.boardX - this.thickness - 2, 0, this.board.length],
-                rotateY(Math.PI / 6, Centered.cuboid([3, this.board.width / 2, 1])),
-              ),
-              // ネジ穴部分を削る
-              // 今の印刷想定だと丸く削るとうまく印刷できないので、四角く削る
-              translate(
-                [0, 0, this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset],
-                Centered.cuboid([
-                  this.jointMainThickness,
-                  this.board.screw.radius + offset,
-                  this.natHolder.minOuterWidth + offset * 2,
-                ]),
-              ),
+            ),
+            this.transformBoard(this.board.transformTopSwitch(this.board.tactileSwitch.looseOctagonOutline)),
+            this.transformBoard(this.board.transformBottomSwitch(this.board.tactileSwitch.looseOctagonOutline)),
+          ),
+          translate(
+            [0, 10, 0],
+            rotateY(
+              degToRad(commonSizeValue.triggerButtonFaceRotateDegree),
+              rotateZ(Math.PI + Math.PI / 2 - this.jointRotation, mirrorZ(this.jointNatHolder.minimumLooseOutline)),
             ),
           ),
-          this.transformBoard(this.board.transformTopSwitch(this.board.tactileSwitch.looseOctagonOutline)),
-          this.transformBoard(this.board.transformBottomSwitch(this.board.tactileSwitch.looseOctagonOutline)),
         ),
       ),
     ];

@@ -4,14 +4,14 @@ import {union} from '@jscad/modeling/src/operations/booleans';
 import {addColor, Cacheable, octagon} from './utls';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
-import {colorize} from '@jscad/modeling/src/colors';
+import {hull} from '@jscad/modeling/src/operations/hulls';
 
 export class TactileSwitch extends Cacheable {
   public readonly baseRadius = 3.1;
   public readonly baseHeight = 3.5;
   public readonly switchHeight = 6;
   public readonly switchRadius = 1.6;
-  public readonly looseSwitchRadius = 2.5;
+  public readonly looseSwitchRadius = 3.2;
   public readonly legHoleWidth = 1.2;
   public readonly legHoleLength = 3;
   public readonly legDistance = 6;
@@ -34,20 +34,34 @@ export class TactileSwitch extends Cacheable {
   }
 
   public get looseOutline(): Geom3 {
+    const capHeight = 3;
     return union(
       this.transform(this.makeBaseOutline(this.looseOffset)),
-      this.transform(this.makeSwitchOutline(this.looseSwitchRadius, this.switchHeight + this.looseOffset)),
+      this.transform(
+        hull(
+          this.makeSwitchOutline(this.switchRadius + this.looseOffset, this.switchHeight + this.looseOffset),
+          cylinder({
+            radius: this.looseSwitchRadius,
+            height: capHeight,
+            center: [0, 0, this.baseHeight + this.switchHeight - capHeight / 2],
+          }),
+        ),
+      ),
     );
   }
 
   public get looseOctagonOutline(): Geom3 {
+    const capHeight = 3.5;
     const base = extrudeLinear(
       {height: this.baseHeight + this.looseOffset},
       octagon(this.baseRadius + this.looseOffset),
     );
     const sw = translateZ(
       this.baseHeight,
-      extrudeLinear({height: this.switchHeight}, octagon(this.switchRadius + this.looseOffset)),
+      hull(
+        translateZ(this.switchHeight - capHeight, extrudeLinear({height: capHeight}, octagon(this.looseSwitchRadius))),
+        extrudeLinear({height: this.switchHeight}, octagon(this.switchRadius + this.looseOffset)),
+      ),
     );
     return this.transform(union(base, sw));
   }

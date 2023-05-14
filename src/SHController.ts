@@ -30,6 +30,7 @@ export class SHController extends Cacheable implements Viewable {
   public get printItems(): ViewerItem[] {
     return [
       {label: 'triggerAndGrip', model: () => this.trigger.fullWithGrip},
+      {label: 'triggerJoint', model: () => halfToFull(this.trigger.buttonFace.jointHalf)},
       {label: 'batteryHolder', model: () => this.trigger.grip.batteryBoxHolder.full},
       {label: 'joint', model: () => this.buttonPadJoint.outline},
       {label: 'buttonPad', model: () => this.buttonPad.full},

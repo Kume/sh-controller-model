@@ -58,17 +58,17 @@ export class TriggerBoard extends Cacheable implements Viewable {
   public get boardHalf(): Geom3 {
     return subtract(
       translateZ(-this.thickness, Centered.cuboid([this.length, this.width / 2, this.thickness])),
-      this.screw.outline,
+      this.screw.looseOutline,
       this.transformTopSwitch(this.tactileSwitch.legHole),
       this.transformBottomSwitch(this.tactileSwitch.legHole),
     );
   }
 
-  private transformTopSwitch(g: Geom3): Geom3 {
+  public transformTopSwitch(g: Geom3): Geom3 {
     return translate([this.topSwitchDistance, this.switchDistanceLeftToRight / 2, 0], g);
   }
 
-  private transformBottomSwitch(g: Geom3): Geom3 {
+  public transformBottomSwitch(g: Geom3): Geom3 {
     return translate([this.topSwitchDistance + this.switchDistanceTopToBottom, 0, 0], rotateZ(Math.PI / 2, g));
   }
 

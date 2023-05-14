@@ -48,7 +48,7 @@ export class Trigger extends Cacheable implements Viewable {
   public readonly backHeight = commonSizeValue.triggerJointHeight;
   public readonly maxZ = 31.5;
 
-  public readonly buttonFaceDegree = 34;
+  public readonly buttonFaceDegree = commonSizeValue.triggerButtonFaceRotateDegree;
 
   public readonly innerSmallWidth = this.grip.width - this.grip.sideThickness * 2;
   public readonly buttonFace = new ButtonFace(this.width, this.innerSmallWidth);
@@ -71,6 +71,7 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'half', model: () => this.half},
         {label: 'half2', model: () => this.half2},
         {label: 'fullWithGrip', model: () => this.fullWithGrip},
+        {label: 'jointHalf', model: () => this.buttonFace.jointHalf},
       ];
     });
   }
@@ -115,6 +116,7 @@ export class Trigger extends Cacheable implements Viewable {
     return [
       ...this.half2,
       ...this.buttonFace.boardHalf.map(this.transformForButtonFace),
+      ...this.buttonFace.jointHalf.map(this.transformForButtonFace),
       ...this.grip.halfWithBatteryBox.map(this.transformGrip),
     ];
   }
@@ -363,10 +365,11 @@ class ButtonFace implements TriggerFace {
   // ボードがunderfaceにギリギリくっつかない程度に調整 (目視)
   private readonly boardDistance = 9;
   public readonly boardX = this.board.tactileSwitch.height - this.board.tactileSwitch.protrusion;
-  public readonly innerPartThickness = 1.5;
+
+  public readonly jointMainThickness = 1.5;
 
   public readonly natHolder = new NatHolder({
-    totalHeight: this.boardX - this.thickness - this.innerPartThickness,
+    totalHeight: this.boardX - this.thickness - this.jointMainThickness,
     topThickness: 1,
     screwHoleType: 'octagon',
   });
@@ -374,6 +377,55 @@ class ButtonFace implements TriggerFace {
   public constructor(public readonly width: number, public readonly innerSmallWidth: number) {}
   public get solidHalf(): Geom3 {
     return extrudeLinear({height: 50}, this.solidGeom2Half);
+  }
+
+  public get jointHalf(): Geom3[] {
+    const offset = 0.3;
+    return [
+      addColor(
+        [0.5, 0.2, 0.5],
+        subtract(
+          translate(
+            [-this.boardX, 0, this.boardDistance],
+            subtract(
+              union(
+                Centered.cuboid([this.jointMainThickness, this.board.width / 2, this.board.length]),
+                Centered.cuboid([
+                  this.boardX - this.thickness,
+                  this.board.width / 2,
+                  this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset,
+                ]),
+                translateZ(
+                  this.board.screwHoleDistance + this.natHolder.minOuterWidth / 2 + offset,
+                  Centered.cuboid([
+                    this.boardX - this.thickness,
+                    this.board.width / 2,
+                    this.board.length - this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset * 2,
+                  ]),
+                ),
+              ),
+              // 角の部分が衝突してるので削る
+              translate(
+                [this.boardX - this.thickness - 2, 0, this.board.length],
+                rotateY(Math.PI / 6, Centered.cuboid([3, this.board.width / 2, 1])),
+              ),
+              // ネジ穴部分を削る
+              // 今の印刷想定だと丸く削るとうまく印刷できないので、四角く削る
+              translate(
+                [0, 0, this.board.screwHoleDistance - this.natHolder.minOuterWidth / 2 - offset],
+                Centered.cuboid([
+                  this.jointMainThickness,
+                  this.board.screw.radius + offset,
+                  this.natHolder.minOuterWidth + offset * 2,
+                ]),
+              ),
+            ),
+          ),
+          this.transformBoard(this.board.transformTopSwitch(this.board.tactileSwitch.looseOctagonOutline)),
+          this.transformBoard(this.board.transformBottomSwitch(this.board.tactileSwitch.looseOctagonOutline)),
+        ),
+      ),
+    ];
   }
 
   public get solidGeom2Half(): Geom2 {
@@ -396,7 +448,7 @@ class ButtonFace implements TriggerFace {
   public get innerAreaHalf(): Geom3 {
     const height = this.topSwitchCenterDistance + this.switchDistanceTopToBottom + 5;
     const thickness =
-      this.tactileSwitch.height + this.thickness + this.tactileSwitch.height - 1 - this.innerPartThickness; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
+      this.tactileSwitch.height + this.thickness + this.tactileSwitch.height - 1 - this.jointMainThickness; // 基板を差し込むために必要な最低限部品の高さの合計と追加の余白分の高さの合計値
     return extrudeLinear(
       {height},
       translateX(-(1.5 + thickness), Centered.rectangle([thickness, this.innerSmallWidth / 2])),
@@ -412,7 +464,7 @@ class ButtonFace implements TriggerFace {
   }
 
   public get additionalPartsHalf(): Geom3[] {
-    const height = this.boardX - this.thickness - this.innerPartThickness;
+    const height = this.boardX - this.thickness - this.jointMainThickness;
     const screwHoleZ = this.boardDistance + this.board.screwHoleDistance;
     return [
       subtract(
@@ -422,6 +474,15 @@ class ButtonFace implements TriggerFace {
         }),
         this.natHolder.full.map((g) =>
           translate([-height - this.thickness, 0, screwHoleZ], rotateX(Math.PI, rotateY(Math.PI / 2, g))),
+        ),
+
+        // 印刷時に角でブリッジを形成しないように角を削る
+        translate(
+          [-this.boardX + this.jointMainThickness, 0, screwHoleZ + this.natHolder.minOuterWidth / 2 - 1],
+          rotateY(
+            degToRad(commonSizeValue.triggerButtonFaceRotateDegree + commonSizeValue.gripRotateDegree),
+            cuboid({size: [1, this.innerSmallWidth / 2, 3], center: [-0.5, this.innerSmallWidth / 4, 3 / 2]}),
+          ),
         ),
       ),
     ];

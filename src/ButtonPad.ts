@@ -217,6 +217,9 @@ export class ButtonPad extends Cacheable implements Viewable {
 
           // トリガーの前方ジョイント部分と重なる部分を削る
           mirrorY(this.joint.looseHeadOutline.map(this.transformGhostJoint)),
+
+          // 上記ジョイント部分を切り取ったために中途半端な形になってしまった部分を完全に切り取る
+          translate([this.gripJointPoints[1][0], this.board.width / 2, 0], Centered.cuboid([4, 6, this.boardZ])),
         ),
       ),
     ];

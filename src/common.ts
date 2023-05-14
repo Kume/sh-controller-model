@@ -28,4 +28,5 @@ export const commonSizeValue = {
   buttonPadJointScrewDistance: 5,
 
   triggerJointSocketThickness: 1,
+  triggerButtonFaceRotateDegree: 34,
 };

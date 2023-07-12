@@ -167,6 +167,10 @@ export class ButtonPad extends Cacheable implements Viewable {
     return [...this.full, ...this.coverFull];
   }
 
+  public get fullWithCoverAndBoard(): Geom3[] {
+    return [...this.full, ...this.coverFull, ...this.board.outline.map(this.transformBoard)];
+  }
+
   public get positionReferencesHalf(): Geom3[] {
     return [
       ...addColor(colors.red, this.sideScrew.outline),
@@ -251,14 +255,15 @@ export class ButtonPad extends Cacheable implements Viewable {
       ),
       // コネクタ用の穴
       translateX(this.boardX, Centered.rectangle([15, this.board.width / 2])),
-      translateX(this.boardX, Centered.rectangle([26, this.board.width / 4])),
+      translateX(this.boardX, Centered.rectangle([31.5, this.board.width / 4])),
     );
     return [
       addColor(
-        [0.1, 0.0, 0.2, 0.7],
+        [0.1, 0.0, 0.2, 0.8],
         subtract(
           union(
             extrudeLinear({height: this.coverThickness}, baseFace),
+            // ネジ穴の支え
             cylinder({
               radius: 4,
               height: this.boardBottomZ,

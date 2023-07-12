@@ -38,12 +38,22 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   public get outlineHalf(): Geom3[] {
-    return [addColor(colors.translucentBoard, this.boardHalf), ...this.switchesHalf.map((sw) => sw.outline)];
+    const h = 5;
+    return [
+      addColor(colors.translucentBoard, this.boardHalf),
+      ...this.switchesHalf.map((sw) => sw.outline),
+      addColor([0, 0, 0, 0.8], this.transformChip(this.chip.outline)),
+      addColor([0.7, 0, 0], translate([17, 0, -h - this.thickness], Centered.cuboid([6, 1.5, 5]))),
+    ];
   }
 
   public get looseOutlineHalf(): Geom3[] {
     // TODO ボードのオフセットを考慮
-    return [addColor(colors.board, this.boardHalf), ...this.switchesHalf.map((sw) => sw.looseOutline)];
+    return [
+      addColor(colors.board, this.boardHalf),
+      ...this.switchesHalf.map((sw) => sw.looseOutline),
+      this.transformChip(this.chip.outline),
+    ];
   }
 
   public get screwHole(): Geom3 {
@@ -73,7 +83,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   private transformChip(chip: Geom3): Geom3 {
-    return translate([10, 0, 0], chip);
+    return translate([25.5, 0, 0], chip);
   }
 
   public get testBoard(): Geom3[] {

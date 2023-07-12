@@ -1,7 +1,7 @@
 import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {ButtonPad} from './ButtonPad';
 import {Trigger} from './Trigger';
-import {mirrorZ, rotateY, translate, translateX} from '@jscad/modeling/src/operations/transforms';
+import {mirrorX, mirrorY, mirrorZ, rotateY, translate, translateX} from '@jscad/modeling/src/operations/transforms';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {Cacheable, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
@@ -22,6 +22,7 @@ export class SHController extends Cacheable implements Viewable {
         {label: 'outline', model: () => this.outline},
         {label: 'full', model: () => this.full},
         {label: 'gripAndTriggerHalf', model: () => this.gripAndTriggerHalf},
+        {label: 'gripAndTriggerHalfAndPad', model: () => this.gripAndTriggerHalfAndPad},
         {label: 'positionReferences', model: () => this.positionReferences},
       ];
     });
@@ -76,6 +77,15 @@ export class SHController extends Cacheable implements Viewable {
       ...this.trigger.grip.halfWithBatteryBox.map(this.transformGrip),
       ...this.trigger.half2,
       ...this.buttonPadJoint.outline.map(this.transformButtonPadJoint),
+    ];
+  }
+
+  public get gripAndTriggerHalfAndPad(): Geom3[] {
+    return [
+      ...this.trigger.grip.halfWithBatteryBox.map(this.transformGrip),
+      ...this.trigger.half2WithBoard,
+      ...this.buttonPadJoint.outline.map(this.transformButtonPadJoint),
+      mirrorY(this.buttonPad.fullWithCoverAndBoard.map(this.buttonPad.transformSelf).map(this.transformButtonPad)),
     ];
   }
 

@@ -69,6 +69,7 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'halfWithGripAndReferenceObject', model: () => this.halfWithGripAndReferenceObject},
         {label: 'half', model: () => this.half},
         {label: 'half2', model: () => this.half2},
+        {label: 'half2WithBoard', model: () => this.half2WithBoard},
         {label: 'fullWithGrip', model: () => this.fullWithGrip},
         {label: 'jointHalf', model: () => this.buttonFace.jointHalf},
       ];
@@ -193,6 +194,10 @@ export class Trigger extends Cacheable implements Viewable {
       //   this.backHeight - this.grip.thickness,
       // ]),
     ];
+  }
+
+  public get half2WithBoard(): Geom3[] {
+    return [...this.half2, ...this.buttonFace.boardHalf.map(this.transformForButtonFace)];
   }
 
   public get jointSocket(): Geom3[] {

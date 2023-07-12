@@ -16,7 +16,7 @@ export class MainBoard extends Cacheable implements Viewable {
   public readonly baseThickness = 1.5;
 
   public readonly legBottomHeight = 2;
-  public readonly screwHoleDistance = 30;
+  public readonly screwHoleDistance = 40;
 
   public get displayName(): string {
     return 'MainBoard';

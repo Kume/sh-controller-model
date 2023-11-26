@@ -3,7 +3,7 @@ import {ButtonPad} from './ButtonPad';
 import {Trigger} from './Trigger';
 import {mirrorX, mirrorY, mirrorZ, rotateY, translate, translateX} from '@jscad/modeling/src/operations/transforms';
 import {degToRad} from '@jscad/modeling/src/utils';
-import {Cacheable, halfToFull, legacyCash} from './utls';
+import {Cacheable, cacheGetter, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {ButtonPadJoint} from './ButtonPadJoint';
 
@@ -16,6 +16,7 @@ export class SHController extends Cacheable implements Viewable {
     return 'SHController';
   }
 
+  @cacheGetter
   public get viewerItems(): ViewerItem[] {
     return legacyCash(this, 'viewerItem', () => {
       return [

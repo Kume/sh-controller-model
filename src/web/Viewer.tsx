@@ -7,10 +7,12 @@ import {Viewable, ViewerItem} from '../types';
 import {SwitchJoyStick} from '../SwitchJoyStick';
 import {Screw} from '../Screw';
 import {translate} from '@jscad/modeling/src/operations/transforms';
+import {AngleSample} from '../samples/AngleSample';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
 const screw = new Screw(7, 2.5, (g) => translate([0, 0, 0], g));
+const sample = new AngleSample();
 const viewableValues: readonly Viewable[] = [
   main,
   main.trigger.grip.board,
@@ -25,6 +27,7 @@ const viewableValues: readonly Viewable[] = [
   main.buttonPadJoint,
   screw,
   joyStick,
+  sample,
 ];
 
 interface ViewerItemState {

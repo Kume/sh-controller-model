@@ -50,7 +50,9 @@ export class Trigger extends Cacheable implements Viewable {
 
   public readonly buttonFaceDegree = commonSizeValue.triggerButtonFaceRotateDegree;
 
-  public readonly innerSmallWidth = this.grip.width - this.grip.sideThickness * 2;
+  public get innerSmallWidth(): number {
+    return this.grip.width - this.grip.sideThickness * 2;
+  }
 
   public constructor(public readonly buttonPadJoint: ButtonPadJoint, public readonly jointRotation: number) {
     super();

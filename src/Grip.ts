@@ -1,7 +1,7 @@
 import {booleans, expansions, extrusions, primitives, transforms} from '@jscad/modeling';
 import {Geom2, Geom3, Geometry} from '@jscad/modeling/src/geometries/types';
 import {MainBoard} from './MainBoard';
-import {addColor, Cacheable, cashGetter, Centered, legacyCash, octagon} from './utls';
+import {addColor, Cacheable, cacheGetter, Centered, legacyCash, octagon} from './utls';
 import {mirrorX, mirrorY, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {BatteryBoxHolder} from './BatteryBoxHolder';
 import {Viewable, ViewerItem} from './types';
@@ -201,7 +201,7 @@ export class Grip extends Cacheable implements Viewable {
     );
   };
 
-  @cashGetter
+  @cacheGetter
   public get outlineHalf() {
     return union(
       extrudeLinear({height: this.length}, this.outlineBasicFaceHalf),

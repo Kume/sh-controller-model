@@ -72,7 +72,7 @@ export class Cacheable {
   }
 }
 
-export function cashGetter<This extends Cacheable>(target: () => unknown, context: ClassGetterDecoratorContext) {
+export function cacheGetter<This extends Cacheable>(target: () => unknown, context: ClassGetterDecoratorContext) {
   return function (this: This) {
     const cachedValue = this.getValue(context.name);
     if (cachedValue !== undefined) {

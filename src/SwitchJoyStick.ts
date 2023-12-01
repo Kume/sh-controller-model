@@ -7,6 +7,8 @@ import {geometries} from '@jscad/modeling';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {union} from '@jscad/modeling/src/operations/booleans';
 import {colorize} from '@jscad/modeling/src/colors';
+import {hull} from '@jscad/modeling/src/operations/hulls';
+import {expand} from '@jscad/modeling/src/operations/expansions';
 const {path2, geom2, geom3} = geometries;
 
 export class SwitchJoyStick extends Cacheable implements Viewable {
@@ -86,7 +88,9 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
 
   private get looseOutlineCommon(): Geom3[] {
     // TODO ケーブルの余白
-    const headThickness = this.stickHeight - 2.6;
+    const headThicknessMin = this.stickHeight - 3.6;
+    const headThicknessMax = this.stickHeight - 0.6;
+
     return [
       addColor([0.1, 0.1, 0.1], this.makeBase(0.2)),
       cylinder({
@@ -94,11 +98,18 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
         radius: this.stickTopRadius + 0.5,
         center: [0, 0, (this.baseThickness + this.stickHeight) / 2],
       }),
-      cylinder({
-        height: headThickness,
-        radius: this.stickTopRadius + 3,
-        center: [0, 0, this.baseThickness + this.stickHeight - headThickness / 2],
-      }),
+      hull(
+        cylinder({
+          height: headThicknessMin,
+          radius: this.stickTopRadius + 3,
+          center: [0, 0, this.baseThickness + this.stickHeight - headThicknessMin / 2],
+        }),
+        cylinder({
+          height: headThicknessMax,
+          radius: this.stickTopRadius,
+          center: [0, 0, this.baseThickness + this.stickHeight - headThicknessMax / 2],
+        }),
+      ),
     ];
   }
 
@@ -111,7 +122,7 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
   }
 
   public get cableLooseOutline(): Geom3[] {
-    return [addColor([0, 0, 0.9], this.transformCable(Centered.extrudeLinear(3, this.cableFace)))];
+    return [addColor([0, 0, 0.9], this.transformCable(Centered.extrudeLinear(3, expand({delta: 2}, this.cableFace))))];
   }
 
   public get looseOutlineFotTopJoint(): Geom3[] {
@@ -172,7 +183,7 @@ export class SwitchJoyStick extends Cacheable implements Viewable {
   private transformTopRightScrewHole(g: Geom3): Geom3 {
     return translate(
       [
-        -((this.baseHeight - this.topRightScrewHole.props.width) / 2),
+        -((this.baseHeight - this.topRightScrewHole.props.width) / 2) + 0.5,
         this.baseWidth / 2 + this.baseYOffset,
         this.screwHoleZOffset,
       ],

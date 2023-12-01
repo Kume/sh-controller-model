@@ -6,6 +6,7 @@ import {degToRad} from '@jscad/modeling/src/utils';
 import {Cacheable, cacheGetter, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {ButtonPadJoint} from './ButtonPadJoint';
+import {union} from '@jscad/modeling/src/operations/booleans';
 
 export class SHController extends Cacheable implements Viewable {
   public readonly buttonPadJoint = new ButtonPadJoint();
@@ -43,6 +44,7 @@ export class SHController extends Cacheable implements Viewable {
       {label: 'buttonPadBoard_outline', model: () => this.buttonPad.board.outline},
       {label: 'triggerBoard_outline', model: () => this.trigger.board.full},
       {label: 'mainBoard_outline', model: () => this.trigger.grip.board.full},
+      {label: 'grip_debug', model: () => union(this.trigger.grip.halfRight, this.trigger.grip.halfLeft)},
     ];
   }
 
@@ -86,7 +88,7 @@ export class SHController extends Cacheable implements Viewable {
       ...this.trigger.grip.halfWithBatteryBox.map(this.transformGrip),
       ...this.trigger.half2WithBoard,
       ...this.buttonPadJoint.outline.map(this.transformButtonPadJoint),
-      mirrorY(this.buttonPad.fullWithCoverAndBoard.map(this.buttonPad.transformSelf).map(this.transformButtonPad)),
+      ...mirrorY(this.buttonPad.fullWithCoverAndBoard.map(this.buttonPad.transformSelf).map(this.transformButtonPad)),
     ];
   }
 

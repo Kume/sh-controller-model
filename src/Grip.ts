@@ -1,7 +1,7 @@
 import {booleans, expansions, extrusions, primitives, transforms} from '@jscad/modeling';
 import {Geom2, Geom3, Geometry} from '@jscad/modeling/src/geometries/types';
 import {MainBoard} from './MainBoard';
-import {addColor, Cacheable, cacheGetter, Centered, legacyCash, octagon} from './utls';
+import {addColor, Cacheable, cacheGetter, Centered, chamfer, legacyCash, octagon} from './utls';
 import {mirrorX, mirrorY, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {BatteryBoxHolder} from './BatteryBoxHolder';
 import {Viewable, ViewerItem} from './types';
@@ -9,6 +9,7 @@ import {extrudeRotate} from '@jscad/modeling/src/operations/extrusions';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {commonSizeValue} from './common';
 import {ButtonPadJoint} from './ButtonPadJoint';
+import {cuboid} from '@jscad/modeling/src/primitives';
 
 const {rectangle, circle, sphere, polygon} = primitives;
 const {translateX, translate, rotate, mirrorZ, rotateY, rotateZ, rotateX} = transforms;
@@ -45,7 +46,7 @@ export class Grip extends Cacheable implements Viewable {
 
   // TODO sketchupモデルの結果値なので、理想的には完成形から逆算すべき
   public readonly jointEndHeight = 10.75;
-  public readonly boardScrewHallDistanceFromEnd = this.board.screwHoleDistance + this.endThickness;
+  public readonly boardScrewHallDistanceFromEnd = this.board.screwHoleDistance + this.endThickness + 1;
 
   public readonly batteryBoxHolderMinZ = 14;
 
@@ -62,8 +63,11 @@ export class Grip extends Cacheable implements Viewable {
       return [
         {label: 'outline', model: () => this.outline},
         {label: 'half', model: () => this.half},
+        {label: 'halfRight', model: () => this.halfRight},
+        {label: 'halfLeft', model: () => this.halfLeft},
         {label: 'halfWithBoard', model: () => this.halfWithBoard},
         {label: 'halfWithBatteryBox', model: () => this.halfWithBatteryBox},
+        {label: 'debug', model: () => this.debug},
       ];
     });
   }
@@ -130,6 +134,14 @@ export class Grip extends Cacheable implements Viewable {
     return [...this.halfWithBoard, ...this.batteryBoxHolder.halfWithBatteryBox.map(this.transformBatteryBoxHolder)];
   }
 
+  public get debug(): Geom3[] {
+    const face = union(
+      this.outlineBasicFaceHalf,
+      rectangle({size: [this.height, 5], center: [-this.height / 2, -5 / 2]}),
+    );
+    return [subtract(extrudeLinear({height: 10}, face), chamfer(face, 1))];
+  }
+
   public get half(): Geom3[] {
     const baseFace = subtract(this.outlineBasicFaceHalf, this.outlineBasicInnerFaceHalf);
     return [
@@ -143,9 +155,50 @@ export class Grip extends Cacheable implements Viewable {
         this.boardScrewHole.subtractTarget,
         this.transformBatteryBoxHolder(this.batteryBoxHolder.extraLooseOutlineHalf),
         this.topWallSubtractionHalf,
+        chamfer(
+          union(this.outlineBasicFaceHalf, rectangle({size: [this.height, 5], center: [-this.height / 2, -5 / 2]})),
+          1,
+        ),
       ),
       // デバッグ時になにか追加したかったらここに追加
     ];
+  }
+
+  public get halfRight(): Geom3[] {
+    const switchHoleWidth = 2.6;
+    const switchHoleYStart = 4;
+    const switchHole = cuboid({
+      size: [20, switchHoleWidth, switchHoleWidth],
+      center: [0, switchHoleWidth / 2 + switchHoleYStart, switchHoleWidth / 2 + 2.5],
+    });
+
+    const guid = translate(
+      [-this.thickness, switchHoleYStart, 0],
+      extrudeLinear(
+        {height: 7},
+        polygon({
+          points: [
+            [0, 0],
+            [0, switchHoleWidth + 1.9],
+            [-switchHoleWidth + 0.5, switchHoleWidth + 1.9],
+            [-switchHoleWidth + 0.5, switchHoleWidth],
+          ],
+        }),
+      ),
+    );
+
+    return [subtract(union(...this.half, guid), switchHole)];
+  }
+
+  public get halfLeft(): Geom3[] {
+    const ledHoleWidth = 3;
+    const ledHoleZ = 5;
+    const ledHoleThickness = 0.5;
+    const ledHole = cuboid({
+      size: [ledHoleThickness, ledHoleWidth, ledHoleWidth],
+      center: [ledHoleThickness / 2 - this.thickness, -6, ledHoleZ],
+    });
+    return [subtract(mirrorY(this.half), ledHole)];
   }
 
   private transformMainBoard = <G extends Geometry>(g: G): G => {
@@ -229,7 +282,7 @@ export class Grip extends Cacheable implements Viewable {
 class BoardScrewHall {
   public readonly height = 8;
   public readonly width = 8;
-  public readonly embossmentTotalThickness = 3.4;
+  public readonly embossmentTotalThickness = 3.2;
 
   public constructor(public readonly transform: (g: Geom3) => Geom3) {}
 
@@ -244,7 +297,7 @@ class BoardScrewHall {
   }
 
   public get headHole(): Geom3 {
-    const height = 2.3;
+    const height = 2.1;
     return this.transform(
       translate(
         [-collisionAdjustSize, 0, 0],

@@ -5,6 +5,9 @@ import {Vec2} from '@jscad/modeling/src/maths/vec2';
 import {mirrorX, mirrorY, mirrorZ, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {colorize, RGB} from '@jscad/modeling/src/colors';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
+import {hull} from '@jscad/modeling/src/operations/hulls';
+import {expand} from '@jscad/modeling/src/operations/expansions';
+import {subtract} from '@jscad/modeling/src/operations/booleans';
 
 export class Centered {
   public static cuboid(size: Vec3): Geom3 {
@@ -137,4 +140,16 @@ export function addColor(color: readonly [number, number, number, number?], g: G
 
 export function rotateVec2([x, y]: readonly [number, number], radian: number): [number, number] {
   return [x * Math.cos(radian) - y * Math.sin(radian), x * Math.sin(radian) + y * Math.cos(radian)];
+}
+
+export function chamfer(face: Geom2, length: number): Geom3[] {
+  return [
+    subtract(
+      extrudeLinear({height: length}, expand({delta: 0.001}, face)),
+      hull(
+        extrudeLinear({height: 0.001}, expand({delta: -length}, face)),
+        translateZ(length, extrudeLinear({height: 0.001}, face)),
+      ),
+    ),
+  ];
 }

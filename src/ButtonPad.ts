@@ -16,7 +16,7 @@ import {
   translateY,
   translateZ,
 } from '@jscad/modeling/src/operations/transforms';
-import {addColor, Cacheable, Centered, halfToFull, legacyCash, rotateVec2} from './utls';
+import {addColor, Cacheable, Centered, chamfer, halfToFull, legacyCash, rotateVec2} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {SwitchJoyStick} from './SwitchJoyStick';
 import {degToRad} from '@jscad/modeling/src/utils';
@@ -47,9 +47,9 @@ export class ButtonPad extends Cacheable implements Viewable {
 
   public readonly buttonHamidashi = 2;
   public readonly boardZ = this.thickness - (this.board.switchesHalf[0].height - this.board.switchesHalf[0].protrusion);
-  public readonly boardDistanceFromStickCenter = 13.5;
+  public readonly boardDistanceFromStickCenter = 14.5;
 
-  public readonly stickXOffset = 16;
+  public readonly stickXOffset = 15;
   public readonly stickRotation = degToRad(30);
 
   public readonly outerColor = [0.8, 0.8, 0.8] as const;
@@ -190,6 +190,7 @@ export class ButtonPad extends Cacheable implements Viewable {
 
   public get half(): Geom3[] {
     const innerAreaFace = subtract(offset({delta: -this.wallThickness}, this.baseFaceHalf), this.backWallArea);
+    const faceForChamfer = union(this.baseFaceHalf, rectangle({size: [this.length, 2], center: [this.length / 2, 0]}));
     return [
       addColor(
         this.outerColor,
@@ -224,6 +225,9 @@ export class ButtonPad extends Cacheable implements Viewable {
 
           // 上記ジョイント部分を切り取ったために中途半端な形になってしまった部分を完全に切り取る
           translate([this.gripJointPoints[1][0], this.board.width / 2, 0], Centered.cuboid([4, 6, this.boardZ])),
+
+          chamfer(faceForChamfer, 0.8),
+          translateZ(this.thickness, mirrorZ(chamfer(faceForChamfer, 0.8))),
         ),
       ),
     ];
@@ -396,7 +400,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   };
 
   private transformStick = (g: Geom3): Geom3 => {
-    return translate([this.stickXOffset, 0, this.boardBottomZ + 1], rotateZ(this.stickRotation, g));
+    return translate([this.stickXOffset, 0, this.boardBottomZ + 0.5], rotateZ(this.stickRotation, g));
   };
 
   private transformNatHolder = (g: Geom3): Geom3 => {

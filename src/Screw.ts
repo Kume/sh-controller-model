@@ -66,6 +66,18 @@ export class Screw extends Cacheable implements Viewable {
     return this.transform(translateZ(-this.length, extrudeLinear({height: this.length}, octagon(this.radius + 0.1))));
   }
 
+  public get octagonHeadLooseOutline(): Geom3 {
+    return this.transform(extrudeLinear({height: this.looseHeadOutlineHeight}, octagon(this.headRadius + 0.2)));
+  }
+
+  public get octagonDriverHoleOutline(): Geom3 {
+    return this.transform(translateZ(this.headHeight, extrudeLinear({height: 20}, octagon(this.headRadius * 1.4))));
+  }
+
+  public get octagonLooseOutline(): Geom3[] {
+    return [this.octagonBodyLooseOutline, this.octagonHeadLooseOutline];
+  }
+
   public get squareBodyLooseOutline(): Geom3 {
     const width = (this.radius + 0.1) * 2;
     const height = this.length;

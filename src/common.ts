@@ -30,4 +30,4 @@ export const commonSizeValue = {
 
   triggerJointSocketThickness: 1,
   triggerButtonFaceRotateDegree: 34,
-};
+} as const;

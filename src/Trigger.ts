@@ -1,11 +1,11 @@
 import type {Geom3} from '@jscad/modeling/src/geometries/types';
 import {booleans, expansions, geometries, primitives, transforms} from '@jscad/modeling';
-import {addColor, Cacheable, Centered, degreeToRadian, halfToFull, legacyCash, measureTime} from './utls';
+import {addColor, Cacheable, cacheGetter, Centered, degreeToRadian, halfToFull, legacyCash, measureTime} from './utls';
 import {Geom2} from '@jscad/modeling/src/geometries/geom2';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {cube, polygon, rectangle} from '@jscad/modeling/src/primitives';
 import {TactileSwitch} from './TactileSwitch';
-import {mirrorX, mirrorY, mirrorZ, rotateX, rotateZ, transform} from '@jscad/modeling/src/operations/transforms';
+import {mirrorY, mirrorZ, rotateX, rotateZ, transform} from '@jscad/modeling/src/operations/transforms';
 import {Viewable, ViewerItem} from './types';
 import {Grip} from './Grip';
 import {degToRad} from '@jscad/modeling/src/utils';
@@ -16,6 +16,8 @@ import {NatHolder} from './NatHolder';
 import {Screw} from './Screw';
 import {ButtonPadJoint} from './ButtonPadJoint';
 import {BatteryBoxTriggerJoint} from './BatteryBoxTriggerJoint';
+import {Mat4} from 'regl';
+import {intersect} from '@jscad/modeling/src/operations/booleans';
 
 const {cuboid, sphere, line, arc} = primitives;
 const {translateZ, translateX, translateY, translate, rotate, rotateY, mirror} = transforms;
@@ -42,6 +44,16 @@ export class Trigger extends Cacheable implements Viewable {
 
   public readonly width = Trigger.width;
   public readonly length = Trigger.lengthSize;
+  public readonly gripJointLength = 20;
+  public readonly gripJointPoleLength = 12.5;
+  public readonly gripJointPoleWidth = 5;
+  public readonly buttonPadJointBaseThickness = 2.5;
+  public readonly buttonPadJointScrewPositionXYZ = [
+    24,
+    // 6.8はflash printでブリッジがいい感じになる幅に調整した結果
+    this.width / 2 - 6.8,
+    this.buttonPadJointBaseThickness + 6.5,
+  ] as const;
   public readonly underFace = new UnderFace(this.width);
   public readonly topFace = new TopFace(this.width, this.length);
   // public readonly length = 55;
@@ -49,6 +61,16 @@ export class Trigger extends Cacheable implements Viewable {
   public readonly maxZ = 31.5;
 
   public readonly buttonFaceDegree = commonSizeValue.triggerButtonFaceRotateDegree;
+
+  public readonly natHolder = new NatHolder({
+    totalHeight: 7,
+    topThickness: 1,
+    natEntryHoleLength: 10,
+    screwHoleType: 'square',
+  });
+  public readonly sideScrew = new Screw(7, 2.5, (g) =>
+    translate([this.buttonPadJointScrewPositionXYZ[0], this.buttonPadJointScrewPositionXYZ[1], 2], rotateX(Math.PI, g)),
+  );
 
   public get innerSmallWidth(): number {
     return this.grip.width - this.grip.sideThickness * 2;
@@ -71,8 +93,16 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'halfWithGripAndReferenceObject', model: () => this.halfWithGripAndReferenceObject},
         {label: 'half', model: () => this.half},
         {label: 'half2', model: () => this.half2},
+        {label: 'half3', model: () => this.half3},
+        {label: 'full3', model: () => this.full3},
         {label: 'half2WithBoard', model: () => this.half2WithBoard},
+        {label: 'buttonPadJointBaseHalf', model: () => this.buttonPadJointBaseHalf},
+        {
+          label: 'half3WithButtonPadJointBaseHalf',
+          model: () => [...this.half3, ...addColor([0.3, 0.3, 0.3], this.buttonPadJointBaseHalf)],
+        },
         {label: 'fullWithGrip', model: () => this.fullWithGrip},
+        {label: 'halfGrip3', model: () => this.halfGrip3},
         {label: 'jointHalf', model: () => this.buttonFace.jointHalf},
       ];
     });
@@ -80,7 +110,7 @@ export class Trigger extends Cacheable implements Viewable {
 
   public get buttonFace(): ButtonFace {
     return legacyCash(this, 'buttonFace', () => {
-      return new ButtonFace(this.width, this.innerSmallWidth, this.jointRotation);
+      return new ButtonFace(this.width, this.innerSmallWidth, this.grip.width + 1, this.jointRotation);
     });
   }
 
@@ -116,6 +146,80 @@ export class Trigger extends Cacheable implements Viewable {
     );
   }
 
+  @cacheGetter
+  public get buttonPadJointFace(): Geom2 {
+    return subtract(
+      union(
+        translate([1, 0], Centered.rectangle([this.length - this.buttonFace.thickness - 1, this.grip.width / 2])),
+        hull(
+          translate(
+            [this.length - this.buttonFace.thickness - 7 - 2, 0],
+            Centered.rectangle([5, this.grip.width / 2 + 1]),
+          ),
+          translate(
+            [this.length - this.buttonFace.thickness - 6 - 2, 0],
+            Centered.rectangle([6 + 2, this.grip.width / 2]),
+          ),
+        ),
+        // サイドの出っ張り（ネジ穴部分）
+        translate([12, 0], Centered.rectangle([22, this.grip.width / 2 + 6])),
+      ),
+      // 穴の手前側の形状
+      hull(
+        translate([13.5 - 3, 0], Centered.rectangle([14.5 + 3 * 2, this.grip.width / 2 - 8])),
+        translate([15, 0], Centered.rectangle([13, this.grip.width / 2 - 5])),
+      ),
+
+      // 穴を先端方向に拡張する
+      translate([15, 0], Centered.rectangle([19, this.grip.width / 2 - 8])),
+
+      // 先端方向のくぼみ
+      translate([this.length - this.buttonFace.thickness - 11, 0], Centered.rectangle([11, 3])),
+    );
+  }
+
+  public buttonPadJointBaseHalfWithoutScrewHole(offset = 0): Geom3[] {
+    // ナナメに削るためにナナメに変形する行列
+    // prettier-ignore
+    const mat: Mat4 = [
+      1, 0, 0, 0,
+      0, 1, 0, 0,
+      -Math.sin(degToRad(this.buttonFaceDegree)), 0, 1, 0,
+      0, 0, 0, 1
+    ];
+    const face = offset ? expand({delta: offset}, this.buttonPadJointFace) : this.buttonPadJointFace;
+    const thickness = this.buttonPadJointBaseThickness + offset;
+    return [
+      subtract(
+        intersect(
+          extrudeLinear({height: thickness}, face),
+          union(
+            transform(mat, extrudeLinear({height: thickness}, face)),
+
+            // ナナメに削ってはいけないエリア
+            Centered.cuboid([this.length - 14, this.width, thickness + 1]),
+          ),
+        ),
+        translate(
+          [this.length - 13.5, 0, this.buttonPadJointBaseThickness - 1],
+          Centered.cuboid([2, this.buttonFace.board.width / 2 + 2, 1]),
+        ),
+      ),
+    ];
+  }
+
+  @cacheGetter
+  public get buttonPadJointBaseHalf(): Geom3[] {
+    return [
+      subtract(
+        this.buttonPadJointBaseHalfWithoutScrewHole(),
+        this.sideScrew.headLooseOutline,
+        this.sideScrew.bodyLooseOutline,
+        translate([this.length - 2, 0, -10], Centered.cuboid([10, this.width / 2, 10])),
+      ),
+    ];
+  }
+
   public get boardOutline(): Geom3[] {
     return halfToFull(this.buttonFace.boardHalf).map(this.transformForButtonFace);
   }
@@ -133,8 +237,56 @@ export class Trigger extends Cacheable implements Viewable {
     return [...this.half2, ...this.grip.half.map(this.transformGrip)];
   }
 
+  public get halfWithGrip2(): Geom3[] {
+    return [...this.half3, ...this.grip.half.map(this.transformGrip)];
+  }
+
   public get fullWithGrip(): Geom3[] {
     return halfToFull(this.halfWithGrip);
+  }
+
+  public get fullWithGrip2(): Geom3[] {
+    return halfToFull(this.halfWithGrip2);
+  }
+
+  public get full3(): Geom3[] {
+    return [
+      subtract(
+        union(halfToFull(this.half3)),
+
+        // 本当はhalfの時点でsubtractしたいが、丸め誤差かなにかでFlashPrintのスライサがおかしな判定をするため、このタイミングで行う
+        halfToFull(this.buttonFace.boardLooseOutlineHalf.map(this.transformForButtonFace)),
+        this.buttonFace.screwHole.map(this.transformForButtonFace),
+      ),
+    ];
+  }
+
+  public get halfGrip3(): Geom3[] {
+    return [...this.gripJoint3Half, ...this.grip.half.map(this.transformGrip)];
+  }
+
+  public get gripJoint3OutlineHalf(): Geom3[] {
+    const angleSize = 6;
+    return [
+      hull(
+        Centered.cuboid([this.gripJointLength, this.grip.width / 2, this.backHeight - angleSize]),
+        Centered.cuboid([this.gripJointLength, this.grip.width / 2 - angleSize, this.backHeight]),
+      ),
+    ];
+  }
+
+  public get gripJoint3Half(): Geom3[] {
+    const angleSize = 6;
+    return [
+      hull(
+        Centered.cuboid([this.gripJointLength, this.grip.width / 2, this.backHeight - angleSize]),
+        Centered.cuboid([this.gripJointLength, this.grip.width / 2 - angleSize, this.backHeight]),
+      ),
+    ];
+  }
+
+  public get poleForGripJoint3Half(): Geom3[] {
+    return [Centered.cuboid([this.gripJointLength, this.gripJointPoleWidth / 2, this.backHeight + 0.5])];
   }
 
   private get faces(): {face: TriggerFace; transform: (g: Geom3) => Geom3}[] {
@@ -195,6 +347,48 @@ export class Trigger extends Cacheable implements Viewable {
       //   12 / 2,
       //   this.backHeight - this.grip.thickness,
       // ]),
+    ];
+  }
+
+  @cacheGetter
+  public get half3(): Geom3[] {
+    return [
+      subtract(
+        union(
+          subtract(
+            this.outlineHalf2,
+            expand({delta: 0.5}, this.gripJoint3OutlineHalf),
+            this.buttonFace.spaceForInsert.map(this.transformForButtonFace),
+            // this.buttonFace.boardLooseOutlineHalf.map(this.transformForButtonFace),
+            // this.buttonFace.screwHole.map(this.transformForButtonFace),
+          ),
+          ...this.poleForGripJoint3Half,
+        ),
+
+        // expand({delta: 0.5}, this.buttonPadJointBaseHalfWithoutScrewHole),
+        this.buttonPadJointBaseHalfWithoutScrewHole(0.5),
+
+        [...this.natHolder.natHall, this.natHolder.screwHole].map((g) =>
+          translate([...this.buttonPadJointScrewPositionXYZ], rotateX(Math.PI, rotateZ(0, g))),
+        ),
+
+        translate(
+          [12 - 0.5, this.buttonPadJointScrewPositionXYZ[1] - 3.2 / 2, this.buttonPadJointBaseThickness + 0.5],
+          Centered.cuboid([23, 3.2, 0.5]),
+        ),
+
+        // 後ろをちょっと削る
+        cuboid({size: [2, this.grip.width + 2, this.backHeight * 2 + 2]}),
+
+        // 空洞の他で削りきれなかった部分を削る
+        hull(
+          cuboid({size: [14, this.grip.width + 1, 35], center: [14 / 2 + this.gripJointPoleLength, 0, 0]}),
+          cuboid({size: [2, this.grip.width + 1, 41], center: [14 / 2 + this.gripJointPoleLength, 0, 0]}),
+        ),
+      ),
+
+      // 位置確認時に有効化
+      ...this.buttonFace.boardHalf.map(this.transformForButtonFace),
     ];
   }
 
@@ -292,6 +486,20 @@ export class Trigger extends Cacheable implements Viewable {
     ];
   }
 
+  public get innerArea3(): Geom3[] {
+    return [
+      translate(
+        [-5, 0, this.backHeight - this.grip.height],
+        rotateY(Math.PI / 2, extrudeLinear({height: 35}, this.grip.outlineBasicInnerFaceHalf)),
+      ),
+      // translateX(commonSizeValue.buttonPadJointLength, Centered.cuboid([16, this.innerSmallWidth / 2, 24.2])),
+      // subtract(
+      //   this.transformForButtonFace(this.buttonFace.innerAreaHalf),
+      //   translateZ(this.maxZ - 1.5, Centered.cuboid([100, 100, 100])),
+      // ),
+    ];
+  }
+
   private get bottomSideCutFace(): Geom2 {
     const width = 5;
     const height = 24;
@@ -369,7 +577,7 @@ class ButtonFace implements TriggerFace {
   public readonly board = new TriggerBoard();
 
   private readonly frontThickness = this.tactileSwitch.height - 2;
-  private readonly thickness = 1.5;
+  public readonly thickness = 1.5;
 
   private readonly topSwitchCenterDistance = 17;
   private readonly switchDistanceLeftToRight = 14;
@@ -396,6 +604,7 @@ class ButtonFace implements TriggerFace {
   public constructor(
     public readonly width: number,
     public readonly innerSmallWidth: number,
+    public readonly innerSpaceWidth: number,
     public readonly jointRotation: number,
   ) {}
   public get solidHalf(): Geom3 {
@@ -493,6 +702,30 @@ class ButtonFace implements TriggerFace {
 
   public get boardLooseOutlineHalf(): Geom3[] {
     return this.board.looseOutlineHalf.map(this.transformBoard);
+  }
+
+  public get spaceForInsert(): Geom3[] {
+    const thickness = 14;
+    const length = this.board.length + this.boardDistance + 1;
+    return [
+      hull(
+        cuboid({
+          size: [thickness, this.innerSpaceWidth / 2 - 3, length],
+          center: [-this.boardX - thickness / 2, (this.innerSpaceWidth / 2 - 3) / 4, length / 2],
+        }),
+        cuboid({
+          size: [thickness, this.innerSpaceWidth / 2, length - 8],
+          center: [-this.boardX - thickness / 2, this.innerSpaceWidth / 4, length / 2],
+        }),
+      ),
+    ];
+  }
+
+  public get screwHole(): Geom3[] {
+    const screw = new Screw(7, commonSizeValue.basicScrewHeadHeight, (g) =>
+      translate([-this.boardX + 2, 0, this.boardDistance + this.board.screwHoleDistance], rotateY(Math.PI / 2, g)),
+    );
+    return [...screw.octagonLooseOutline, screw.octagonDriverHoleOutline];
   }
 
   public get additionalPartsHalf(): Geom3[] {

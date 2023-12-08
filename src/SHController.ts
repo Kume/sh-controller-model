@@ -1,17 +1,19 @@
 import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {ButtonPad} from './ButtonPad';
 import {Trigger} from './Trigger';
-import {mirrorX, mirrorY, mirrorZ, rotateY, translate, translateX} from '@jscad/modeling/src/operations/transforms';
+import {mirrorY, mirrorZ, rotateY, translate, translateX} from '@jscad/modeling/src/operations/transforms';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {Cacheable, cacheGetter, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {ButtonPadJoint} from './ButtonPadJoint';
 import {union} from '@jscad/modeling/src/operations/booleans';
+import {TriggerJoint} from './TriggerJoint';
 
 export class SHController extends Cacheable implements Viewable {
   public readonly buttonPadJoint = new ButtonPadJoint();
   public readonly buttonPad = new ButtonPad(this.buttonPadJoint);
   public readonly trigger = new Trigger(this.buttonPadJoint, this.buttonPad.jointRotationRad);
+  public readonly triggerJoint = new TriggerJoint(this.trigger, this.buttonPad);
 
   public get displayName(): string {
     return 'SHController';
@@ -26,6 +28,7 @@ export class SHController extends Cacheable implements Viewable {
         {label: 'gripAndTriggerHalf', model: () => this.gripAndTriggerHalf},
         {label: 'gripAndTriggerHalfAndPad', model: () => this.gripAndTriggerHalfAndPad},
         {label: 'positionReferences', model: () => this.positionReferences},
+        {label: 'positionReferences2', model: () => this.positionReferences2},
       ];
     });
   }
@@ -33,7 +36,9 @@ export class SHController extends Cacheable implements Viewable {
   public get printItems(): ViewerItem[] {
     return [
       {label: 'triggerAndGrip', model: () => this.trigger.fullWithGrip},
-      {label: 'triggerJoint', model: () => halfToFull(this.trigger.buttonFace.jointHalf)},
+      {label: 'trigger', model: () => this.trigger.full3},
+      // {label: 'triggerJoint', model: () => halfToFull(this.trigger.buttonFace.jointHalf)},
+      {label: 'triggerJoint', model: () => this.triggerJoint.full},
       {label: 'batteryHolder', model: () => this.trigger.grip.batteryBoxHolder.full},
       {label: 'joint', model: () => this.buttonPadJoint.outline},
       {label: 'buttonPad', model: () => this.buttonPad.full},
@@ -71,7 +76,16 @@ export class SHController extends Cacheable implements Viewable {
       ...this.buttonPad.positionReferences.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
       ...this.trigger.fullWithGrip,
       ...this.trigger.boardOutline,
-      ...halfToFull(this.trigger.buttonFace.jointHalf),
+      // ...halfToFull(this.trigger.buttonFace.jointHalf),
+    ];
+  }
+
+  public get positionReferences2(): Geom3[] {
+    return [
+      ...this.buttonPad.positionReferences.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
+      ...this.trigger.fullWithGrip2,
+      ...this.trigger.boardOutline,
+      ...this.triggerJoint.full,
     ];
   }
 

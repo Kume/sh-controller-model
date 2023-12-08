@@ -418,7 +418,7 @@ export class ButtonPad extends Cacheable implements Viewable {
     );
   };
 
-  private transformGhostJoint = (g: Geom3): Geom3 => {
+  public transformGhostJoint = (g: Geom3): Geom3 => {
     return translateZ(
       -this.sideScrewBaseThickness - this.joint.screwBaseThickness,
       this.transformGhostSideScrew(rotateZ(-this.jointRotationRad * 3, g)),
@@ -426,11 +426,10 @@ export class ButtonPad extends Cacheable implements Viewable {
   };
 
   public get jointRotationRad(): number {
-    const [[x1, y1], [x2, y2]] = this.gripJointPoints;
-    return Math.atan2(x2 - x1, y2 - y1);
+    return -degToRad(this.selfTransformParams.rotationDegree);
   }
 
-  private sideScrewTransformValues() {
+  public sideScrewTransformValues() {
     const [[x1, y1], [x2, y2]] = this.gripJointPoints;
     const theta = this.jointRotationRad;
     return {

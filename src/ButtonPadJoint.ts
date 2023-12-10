@@ -80,7 +80,7 @@ export class ButtonPadJoint extends Cacheable implements Viewable {
             offset > 0 ? this.natHolder.minimumLooseOutline : this.natHolder.minimumOutline,
             cuboid({
               size: [bridgeWidth, this.looseWidth, this.screwBaseThickness],
-              center: [bridgeWidth / 2 + this.natHolder.screwHallRadius, 0, this.screwBaseThickness / 2],
+              center: [bridgeWidth / 2 + this.natHolder.screwHoleRadius, 0, this.screwBaseThickness / 2],
             }),
           ),
         ),

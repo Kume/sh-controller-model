@@ -16,7 +16,7 @@ import {
   translateY,
   translateZ,
 } from '@jscad/modeling/src/operations/transforms';
-import {addColor, Cacheable, Centered, chamfer, halfToFull, legacyCash, rotateVec2} from './utls';
+import {addColor, Cacheable, cacheGetter, Centered, chamfer, halfToFull, legacyCash, rotateVec2} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {SwitchJoyStick} from './SwitchJoyStick';
 import {degToRad} from '@jscad/modeling/src/utils';
@@ -127,18 +127,42 @@ export class ButtonPad extends Cacheable implements Viewable {
     ];
   }
 
-  /* 指の部分を削るための空間 */
+  /**
+   * 人差し指が引っかからないようにするためのナナメのくぼみ
+   */
+  @cacheGetter
   public get fingerSubtraction(): Geom3 {
+    return addColor([1, 0, 0], union(hull(this.fingerSubtractionPoints2()), hull(this.fingerSubtractionPoints1())));
+  }
+
+  public fingerSubtractionPoints1(radius = 0.01): Geom3[] {
     const [, [x2, y2]] = this.gripJointPoints;
     return addColor(
       [1, 0, 0],
-      hull([
-        sphere({radius: 0.01, center: [this.length, this.endWidth / 2, 0]}),
-        sphere({radius: 0.01, center: [x2 + 14, this.endWidth / 2, 0]}),
-        sphere({radius: 0.01, center: [x2 + 8, this.endWidth / 2 + 5, 0]}),
-        sphere({radius: 0.01, center: [x2, y2, 0]}),
-        sphere({radius: 0.01, center: [x2 + 6, y2, 11]}),
-      ]),
+      [
+        sphere({radius, center: [this.length - 2, this.endWidth / 2 + 1, 0]}),
+        sphere({radius, center: [this.length - 6, this.endWidth / 2 + 5, 3]}),
+        sphere({radius, center: [this.length - 18, this.endWidth / 2 + 7, 3]}),
+        sphere({radius, center: [x2 + 12, this.endWidth / 2 + 2.5, 0]}),
+        sphere({radius, center: [x2 + 28, 4, 0]}),
+        sphere({radius, center: [x2 + 15, 6, 0]}),
+      ],
+    );
+  }
+
+  public fingerSubtractionPoints2(radius = 0.01): Geom3[] {
+    const [, [x2, y2]] = this.gripJointPoints;
+    return addColor(
+      [0, 1, 0],
+      [
+        sphere({radius, center: [this.length, this.endWidth / 2, 0]}),
+        sphere({radius, center: [this.length - 7, this.endWidth / 2 - 1, 0]}),
+        sphere({radius, center: [x2 + 12, this.endWidth / 2 + 2.5, 0]}),
+        sphere({radius, center: [x2 + 6, this.endWidth / 2 + 8, 0]}),
+        sphere({radius, center: [x2, y2, 0]}),
+        sphere({radius, center: [x2 + 6, y2, 11]}),
+        sphere({radius, center: [x2 + 30, y2 - 10, 11]}),
+      ],
     );
   }
 
@@ -188,6 +212,7 @@ export class ButtonPad extends Cacheable implements Viewable {
     return [...this.full, ...this.positionReferences, ...this.boardAndStick];
   }
 
+  @cacheGetter
   public get half(): Geom3[] {
     const innerAreaFace = subtract(offset({delta: -this.wallThickness}, this.baseFaceHalf), this.backWallArea);
     const faceForChamfer = union(this.baseFaceHalf, rectangle({size: [this.length, 2], center: [this.length / 2, 0]}));
@@ -216,7 +241,6 @@ export class ButtonPad extends Cacheable implements Viewable {
           ...this.natHolder.full.map(this.transformNatHolder),
           ...this.dipForBoardHalf,
 
-          // 人差し指が引っかからないようにするためのナナメのくぼみ
           this.fingerSubtraction,
           this.sideScrew.headAndSquareBodyLooseOutline,
 
@@ -230,6 +254,9 @@ export class ButtonPad extends Cacheable implements Viewable {
           translateZ(this.thickness, mirrorZ(chamfer(faceForChamfer, 0.8))),
         ),
       ),
+
+      // ...this.fingerSubtractionPoints1(1),
+      // ...this.fingerSubtractionPoints2(1),
     ];
   }
 
@@ -324,6 +351,8 @@ export class ButtonPad extends Cacheable implements Viewable {
           ...this.joint.looseHeadOutline.map(this.transformJoint),
           // トリガーとの接合部分を避けるためのくぼみ
           translate([this.gripJointPoints[1][0], this.board.width / 2, 0], Centered.cuboid([10, 1, 10])),
+
+          this.fingerSubtraction,
         ),
       ),
     ];
@@ -376,7 +405,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   }
 
   public get dipForBoardHalf(): Geom3[] {
-    const thickness = this.natHolder.natHallHeight + this.natHolder.props.topThickness;
+    const thickness = this.natHolder.natHoleHeight + this.natHolder.props.topThickness;
     const length = 25;
     return [
       cuboid({

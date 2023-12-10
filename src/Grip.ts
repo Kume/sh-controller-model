@@ -164,6 +164,14 @@ export class Grip extends Cacheable implements Viewable {
     ];
   }
 
+  public get innerSpaceHalf(): Geom3[] {
+    return [extrudeLinear({height: this.length}, this.outlineBasicInnerFaceHalf)];
+  }
+
+  public get full(): Geom3[] {
+    return [union(this.halfLeft, this.halfRight)];
+  }
+
   public get halfRight(): Geom3[] {
     const switchHoleWidth = 2.6;
     const switchHoleYStart = 4;

@@ -99,6 +99,6 @@ export class Screw extends Cacheable implements Viewable {
 
   public get bodyLooseOutline(): Geom3 {
     const height = this.length;
-    return this.transform(cylinder({radius: this.radius + 0.1, height, center: [0, 0, -height / 2]}));
+    return this.transform(cylinder({radius: this.radius + 0.2, height, center: [0, 0, -height / 2]}));
   }
 }

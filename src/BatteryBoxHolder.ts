@@ -1,4 +1,4 @@
-import {addColor, Cacheable, Centered, halfToFull, legacyCash} from './utls';
+import {addColor, Cacheable, Centered, chamfer, halfToFull, legacyCash} from './utls';
 import {Viewable} from './types';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {circle, cuboid, polygon, rectangle, roundedCuboid} from '@jscad/modeling/src/primitives';
@@ -18,6 +18,7 @@ import {degToRad} from '@jscad/modeling/src/utils';
 import {commonSizeValue} from './common';
 import {offset} from '@jscad/modeling/src/operations/expansions';
 import {BatteryBoxTriggerJoint} from './BatteryBoxTriggerJoint';
+import {hull} from '@jscad/modeling/src/operations/hulls';
 
 interface BatteryBoxHolderProps {
   readonly minXDistanceFromGripBottom: number;
@@ -71,7 +72,10 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
         {label: 'outlineHalf', model: () => this.outlineHalf},
         {label: 'half', model: () => this.half},
         {label: 'full', model: () => this.full},
+        {label: 'full2', model: () => this.full2},
+        {label: 'coverHalf', model: () => this.coverHalf},
         {label: 'fullWithBatteryBox', model: () => this.fullWithBatteryBox},
+        {label: 'halfWithCover', model: () => this.halfWithCover},
       ];
     });
   }
@@ -100,6 +104,132 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       ),
       translateX(this.baseHeight, Centered.cuboid([30, this.width / 2, this.baseLength + 20])),
     );
+  }
+
+  public get half2(): Geom3[] {
+    const bottomOffset = 0.5;
+    const bottomWidth = this.width / 2 - this.baseThickness - bottomOffset;
+    return [
+      // 後方の壁
+      subtract(
+        Centered.cuboid([this.baseHeight, this.width / 2, this.endThickness]),
+        translate(
+          [0, this.grooveDistance / 2, this.endThickness - this.grooveDepth],
+          Centered.cuboid([this.grooveHeight, this.grooveWidth, this.grooveDepth]),
+        ),
+        translate(
+          [this.baseHeight - this.cutoutDepth, 0, 0],
+          Centered.cuboid([this.cutoutDepth, this.cutoutWidth / 2, this.endThickness]),
+        ),
+        chamfer(rectangle({size: [this.baseHeight, this.width], center: [this.baseHeight / 2, 0]}), 1),
+      ),
+
+      // 横壁
+      subtract(
+        translateY(
+          this.width / 2,
+          rotateX(Math.PI / 2, extrudeLinear({height: this.baseThickness}, this.baseSideFace)),
+        ),
+        chamfer(rectangle({size: [this.baseHeight, this.width], center: [this.baseHeight / 2, 0]}), 1),
+      ),
+
+      // 底面
+      translateZ(
+        this.endThickness,
+        subtract(
+          Centered.cuboid([1, bottomWidth, this.baseLength - this.endThickness]),
+          translate([0, this.grooveDistance / 2, 0], Centered.cuboid([1, this.grooveWidth, 12])),
+        ),
+      ),
+
+      // 底面と横壁の隙間を埋める
+      intersect(
+        translateZ(
+          this.endThickness,
+          Centered.cuboid([1, this.width / 2 - this.baseThickness, this.baseLength - this.endThickness]),
+        ),
+        translateY(
+          this.width / 2 - bottomOffset,
+          rotateX(Math.PI / 2, extrudeLinear({height: this.baseThickness + bottomOffset}, this.baseSideFace)),
+        ),
+      ),
+
+      ...this.triggerJoint2,
+
+      this.gripJoint,
+
+      // トリガー近くの丸いカバー
+      subtract(
+        translate(
+          [this.baseHeight, 0, this.baseLength - this.topLengthMax],
+          extrudeLinear(
+            {height: this.topLengthMax + this.topEndOffset + this.topEndThickness},
+            subtract(this.makeTopFaceHalf(), this.makeTopFaceHalf(-this.topThickness, -this.topThickness)),
+          ),
+        ),
+        translateZ(0.3, this.coverHalf),
+      ),
+      translate(
+        [this.baseHeight, 0, this.baseLength + 0.7],
+        rotateY(
+          -degToRad(commonSizeValue.batteryBoxRotateDegree),
+          extrudeLinear(
+            {height: 1.3},
+            subtract(this.makeTopFaceHalf(), this.makeTopFaceHalf(-this.topThickness, -this.topThickness)),
+          ),
+        ),
+      ),
+    ].map((g) => addColor(this.color, g));
+  }
+
+  public get triggerJoint2(): Geom3[] {
+    const width = 6;
+    const height = 5;
+    const startZ = 25;
+    const nanameStartOffset = 3;
+    const additionalLength = 25;
+    const rotateYRad = -degToRad(commonSizeValue.batteryBoxRotateDegree);
+    const baseJoint = translate(
+      [1, this.width / 2 - width - this.baseThickness - 0.5, startZ],
+      hull(
+        translate([-1, 0, 0], Centered.cuboid([1, width, 1])),
+        translate([-height, 0, 10], Centered.cuboid([height, 3, this.baseLength - 10 - startZ + additionalLength])),
+        translate([-1, 0, 10], Centered.cuboid([1, width, this.baseLength - 10 - startZ + additionalLength])),
+      ),
+    );
+    const nanameJoint = translate(
+      [1, this.width / 2 - width - this.baseThickness - 0.5, this.baseLength - nanameStartOffset],
+      rotateY(
+        rotateYRad,
+        hull(
+          translate([-height, 0, 0], Centered.cuboid([height, 3, additionalLength])),
+          translate([-1, 0, 0], Centered.cuboid([1, width, additionalLength])),
+        ),
+      ),
+    );
+    return [
+      subtract(
+        union(
+          baseJoint,
+          nanameJoint,
+          hull(
+            intersect(
+              baseJoint,
+              translate([0, 0, this.baseLength - nanameStartOffset], Centered.cuboid([100, 100, 100])),
+            ),
+            nanameJoint,
+          ),
+        ),
+        translate(
+          [1, 0, this.baseLength + additionalLength - 5],
+          rotateY(rotateYRad, Centered.cuboid([100, 100, 100])),
+        ),
+        translate(
+          [1, 0, this.baseLength + additionalLength - 5],
+          rotateY(rotateYRad, translate([-100, 0, 0], Centered.cuboid([100, 100, 100]))),
+        ),
+      ),
+    ];
   }
 
   public get half(): Geom3[] {
@@ -190,6 +320,30 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
     ];
   }
 
+  public get jointTail2(): Geom3[] {
+    const length = 35;
+    const height = 3;
+    return [
+      translate([-height, 0, this.baseLength - length], Centered.cuboid([height, this.joint.widthForPrint, length])),
+      translate(
+        [0, this.joint.widthForPrint, this.baseLength - 35 - height],
+        rotateX(
+          Math.PI / 2,
+          extrudeLinear(
+            {height: this.joint.widthForPrint},
+            polygon({
+              points: [
+                [-height, height],
+                [0, 0],
+                [0, height],
+              ],
+            }),
+          ),
+        ),
+      ),
+    ];
+  }
+
   public get gripJoint(): Geom3 {
     const width = 2;
     const height = 5;
@@ -244,9 +398,12 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
   public get coverHalf(): Geom3[] {
     return [
       subtract(
-        extrudeLinear(
-          {height: this.baseLength - this.topLengthMin},
-          subtract(this.makeTopFaceHalf(), this.makeTopFaceHalf(-this.topThickness, -this.topThickness)),
+        union(
+          extrudeLinear(
+            {height: this.baseLength - this.topLengthMin},
+            subtract(this.makeTopFaceHalf(), this.makeTopFaceHalf(-this.topThickness, -this.topThickness)),
+          ),
+          extrudeLinear({height: this.endThickness}, this.makeTopFaceHalf()),
         ),
         translate(
           [0, this.width / 2 - this.baseThickness - this.topHeight, this.baseLength - this.topLengthMax],
@@ -259,12 +416,24 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
     ].map((g) => translateX(this.baseHeight, g));
   }
 
+  public get coverFull(): Geom3[] {
+    return [...halfToFull(this.coverHalf)];
+  }
+
   public get halfWithBatteryBox(): Geom3[] {
-    return [...this.half, this.transformBatteryBox(this.batteryBox.full)];
+    return [...this.half2, this.transformBatteryBox(this.batteryBox.full)];
+  }
+
+  public get halfWithCover(): Geom3[] {
+    return [...this.half2, ...this.coverHalf];
   }
 
   public get full(): Geom3[] {
     return halfToFull(this.half);
+  }
+
+  public get full2(): Geom3[] {
+    return halfToFull(this.half2);
   }
 
   public get fullWithBatteryBox(): Geom3[] {

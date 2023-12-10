@@ -52,7 +52,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
     return [
       addColor(colors.board, this.boardHalf),
       ...this.switchesHalf.map((sw) => sw.looseOutline),
-      this.transformChip(this.chip.outline),
+      // this.transformChip(this.chip.outline),
     ];
   }
 

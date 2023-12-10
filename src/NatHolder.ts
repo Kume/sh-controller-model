@@ -16,12 +16,12 @@ export interface NatHolderProps {
 
 export class NatHolder extends Cacheable implements Viewable {
   public static readonly minOuterWidth = 9;
-  public readonly natHallHeight = 3.4;
-  public readonly natHallRadius = 3.3;
+  public readonly natHoleHeight = 3.4;
+  public readonly natHoleRadius = 3.3;
   public readonly bridgeSupporterThickness = 0.4;
   public readonly minimumOutlineThickness = 1;
 
-  public readonly minOuterWidth = NatHolder.minOuterWidth; // natHallRadius * 2 + 1(thickness) * 2
+  public readonly minOuterWidth = NatHolder.minOuterWidth; // natHoleRadius * 2 + 1(thickness) * 2
 
   public constructor(public readonly props: NatHolderProps) {
     super();
@@ -60,7 +60,7 @@ export class NatHolder extends Cacheable implements Viewable {
           Math.PI / 2,
           extrudeLinear(
             {height: this.props.totalHeight},
-            hexagon(this.natHallRadius + this.minimumOutlineThickness + offset, 'max'),
+            hexagon(this.natHoleRadius + this.minimumOutlineThickness + offset, 'max'),
           ),
         ),
         cuboid({
@@ -72,7 +72,7 @@ export class NatHolder extends Cacheable implements Viewable {
   }
 
   public get full(): Geom3[] {
-    return [this.screwHole, ...this.natHall, ...this.bridgeSupporter].map((g) => rotateZ(Math.PI / 2, g));
+    return [this.screwHole, ...this.natHole, ...this.bridgeSupporter].map((g) => rotateZ(Math.PI / 2, g));
   }
 
   public get screwHole(): Geom3 {
@@ -84,8 +84,8 @@ export class NatHolder extends Cacheable implements Viewable {
       return [
         cuboid({
           size: [
-            this.natHallRadius * 2 * Math.cos(Math.PI / 6),
-            this.screwHallRadius * 2,
+            this.natHoleRadius * 2 * Math.cos(Math.PI / 6),
+            this.screwHoleRadius * 2,
             this.bridgeSupporterThickness,
           ],
           center: [0, 0, this.props.topThickness - this.bridgeSupporterThickness / 2],
@@ -96,19 +96,36 @@ export class NatHolder extends Cacheable implements Viewable {
     }
   }
 
-  public get screwHallRadius(): number {
+  public get underBridgeSupporter(): Geom3[] {
+    if (this.props.screwHoleType === 'square') {
+      return [
+        cuboid({
+          size: [
+            this.natHoleRadius * 2 * Math.cos(Math.PI / 6),
+            this.screwHoleRadius * 2,
+            this.bridgeSupporterThickness,
+          ],
+          center: [0, 0, this.props.topThickness + this.natHoleHeight + this.bridgeSupporterThickness / 2],
+        }),
+      ];
+    } else {
+      return [];
+    }
+  }
+
+  public get screwHoleRadius(): number {
     return 1.5 + (this.props.screwHoleOffset ?? 0.1);
   }
 
   public minimumOutlineWidth(offset = 0): number {
-    return (this.natHallRadius + this.minimumOutlineThickness + offset) * 2 * Math.cos(Math.PI / 6);
+    return (this.natHoleRadius + this.minimumOutlineThickness + offset) * 2 * Math.cos(Math.PI / 6);
   }
 
-  public get natHall(): Geom3[] {
-    const natHole = extrudeLinear({height: this.natHallHeight}, hexagon(this.natHallRadius, 'max'));
+  public get natHole(): Geom3[] {
+    const natHole = extrudeLinear({height: this.natHoleHeight}, hexagon(this.natHoleRadius, 'max'));
     const entryHole = cuboid({
-      size: [this.natHallRadius * 2 * Math.cos(Math.PI / 6), this.natEntryHoleLength, this.natHallHeight],
-      center: [0, this.natEntryHoleLength / 2, this.natHallHeight / 2 + this.props.topThickness],
+      size: [this.natHoleRadius * 2 * Math.cos(Math.PI / 6), this.natEntryHoleLength, this.natHoleHeight],
+      center: [0, this.natEntryHoleLength / 2, this.natHoleHeight / 2 + this.props.topThickness],
     });
     return [translateZ(this.props.topThickness, natHole), entryHole];
   }
@@ -116,11 +133,11 @@ export class NatHolder extends Cacheable implements Viewable {
   private get screwHoleFace(): Geom2 {
     switch (this.props.screwHoleType) {
       case 'circle':
-        return circle({radius: this.screwHallRadius});
+        return circle({radius: this.screwHoleRadius});
       case 'octagon':
-        return octagon(this.screwHallRadius);
+        return octagon(this.screwHoleRadius);
       case 'square':
-        return square({size: this.screwHallRadius * 2});
+        return square({size: this.screwHoleRadius * 2});
     }
   }
 }

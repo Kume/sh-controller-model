@@ -22,7 +22,7 @@ export class TriggerJoint extends Cacheable implements Viewable {
     commonSizeValue.buttonPadScrewBaseThickness -
     this.screwBaseThickness;
   private natHolder = new NatHolder({
-    screwHoleType: 'octagon',
+    screwHoleType: 'square',
     topThickness: 1 + this.screwBaseThickness,
     totalHeight: this.natHolderHeight + this.screwBaseThickness,
     natEntryHoleLength:
@@ -103,7 +103,7 @@ export class TriggerJoint extends Cacheable implements Viewable {
         this.natHolder.minimumOutline,
         cuboid({
           size: [bridgeWidth, this.natHolder.minimumOutlineWidth(this.looseOutlineOffset), this.screwBaseThickness],
-          center: [bridgeWidth / 2 + this.natHolder.screwHallRadius, 0, this.screwBaseThickness / 2],
+          center: [bridgeWidth / 2 + this.natHolder.screwHoleRadius, 0, this.screwBaseThickness / 2],
         }),
       ),
     );

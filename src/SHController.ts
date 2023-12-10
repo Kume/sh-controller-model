@@ -35,21 +35,22 @@ export class SHController extends Cacheable implements Viewable {
 
   public get printItems(): ViewerItem[] {
     return [
-      {label: 'triggerAndGrip', model: () => this.trigger.fullWithGrip},
+      // {label: 'triggerAndGrip', model: () => this.trigger.fullWithGrip},
       {label: 'trigger', model: () => this.trigger.full3},
-      // {label: 'triggerJoint', model: () => halfToFull(this.trigger.buttonFace.jointHalf)},
       {label: 'triggerJoint', model: () => this.triggerJoint.full},
-      {label: 'batteryHolder', model: () => this.trigger.grip.batteryBoxHolder.full},
-      {label: 'joint', model: () => this.buttonPadJoint.outline},
+      {label: 'batteryHolder', model: () => this.trigger.grip.batteryBoxHolder.full2},
+      {label: 'batteryHolderCover', model: () => this.trigger.grip.batteryBoxHolder.coverFull},
+      // {label: 'joint', model: () => this.buttonPadJoint.outline},
       {label: 'buttonPad', model: () => this.buttonPad.full},
       {label: 'buttonPadCover', model: () => this.buttonPad.coverFull},
-      {label: 'buttonPadBoard', model: () => this.buttonPad.board.testBoard},
-      {label: 'triggerBoard', model: () => this.trigger.board.testBoard},
-      {label: 'mainBoard', model: () => this.trigger.grip.board.testBoard},
-      {label: 'buttonPadBoard_outline', model: () => this.buttonPad.board.outline},
-      {label: 'triggerBoard_outline', model: () => this.trigger.board.full},
-      {label: 'mainBoard_outline', model: () => this.trigger.grip.board.full},
-      {label: 'grip_debug', model: () => union(this.trigger.grip.halfRight, this.trigger.grip.halfLeft)},
+      // {label: 'buttonPadBoard', model: () => this.buttonPad.board.testBoard},
+      // {label: 'triggerBoard', model: () => this.trigger.board.testBoard},
+      // {label: 'mainBoard', model: () => this.trigger.grip.board.testBoard},
+      // {label: 'buttonPadBoard_outline', model: () => this.buttonPad.board.outline},
+      // {label: 'triggerBoard_outline', model: () => this.trigger.board.full},
+      // {label: 'mainBoard_outline', model: () => this.trigger.grip.board.full},
+      {label: 'grip', model: () => this.trigger.gripWithJoint},
+      // {label: 'grip_debug', model: () => union(this.trigger.grip.halfRight, this.trigger.grip.halfLeft)},
     ];
   }
 
@@ -83,7 +84,7 @@ export class SHController extends Cacheable implements Viewable {
   public get positionReferences2(): Geom3[] {
     return [
       ...this.buttonPad.positionReferences.map(this.buttonPad.transformSelf).map(this.transformButtonPad),
-      ...this.trigger.fullWithGrip2,
+      ...this.trigger.fullWithGrip3,
       ...this.trigger.boardOutline,
       ...this.triggerJoint.full,
     ];

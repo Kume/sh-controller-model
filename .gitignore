@@ -3,3 +3,4 @@ out
 *.log
 local.md
 lib
+dist

@@ -41,7 +41,7 @@ export const JSCADView: React.FC<Props> = ({title, solids}) => {
   // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
   const entities = useMemo(() => entitiesFromSolids({}, solids as any), [solids]);
   const ref = useRef<HTMLDivElement | null>(null);
-  const renderRef = useRef<(arg: unknown) => void>(null);
+  const renderRef = useRef<(arg: unknown) => void>();
   const operationDeltaRef = useRef<OperationDelta>({rotate: [0, 0], pan: [0, 0], zoom: 0, reset: true});
   const [stateCamera, setCamera] = useState(cameras.perspective.defaults);
   const [stateControls, setControls] = useState(controls.orbit.defaults);

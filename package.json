@@ -7,6 +7,7 @@
     "dev": "ts-node-dev src/main.ts",
     "build": "ts-node src/main.ts",
     "build:sample": "ts-node src/samples/writeSample.ts",
+    "build:web": "tsc && vite build",
     "web": "vite"
   },
   "devDependencies": {

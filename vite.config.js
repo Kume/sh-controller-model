@@ -7,6 +7,7 @@ const config = defineConfig({
       babel: {plugins: [['@babel/plugin-proposal-decorators', {version: '2023-01'}]]},
     }),
   ],
+  base: '/sh-controller-model/',
 });
 
 console.log('xxxx config', config);

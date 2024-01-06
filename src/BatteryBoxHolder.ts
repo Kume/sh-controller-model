@@ -1,7 +1,7 @@
 import {addColor, Cacheable, Centered, chamfer, halfToFull, legacyCash} from './utls';
 import {Viewable} from './types';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
-import {circle, cuboid, polygon, rectangle, roundedCuboid} from '@jscad/modeling/src/primitives';
+import {circle, cuboid, cylinder, polygon, rectangle, roundedCuboid} from '@jscad/modeling/src/primitives';
 import {
   mirrorZ,
   rotate,
@@ -31,7 +31,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
 
   public readonly width = 30;
   public readonly baseHeight = 11.2;
-  public readonly baseLength = 66.3;
+  public readonly baseLength = 65;
   public readonly baseThickness = 1.8;
 
   public readonly topRadius = 3;
@@ -76,6 +76,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
         {label: 'coverHalf', model: () => this.coverHalf},
         {label: 'fullWithBatteryBox', model: () => this.fullWithBatteryBox},
         {label: 'halfWithCover', model: () => this.halfWithCover},
+        {label: 'switchPusher', model: () => this.switchPusher},
       ];
     });
   }
@@ -114,10 +115,6 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       subtract(
         Centered.cuboid([this.baseHeight, this.width / 2, this.endThickness]),
         translate(
-          [0, this.grooveDistance / 2, this.endThickness - this.grooveDepth],
-          Centered.cuboid([this.grooveHeight, this.grooveWidth, this.grooveDepth]),
-        ),
-        translate(
           [this.baseHeight - this.cutoutDepth, 0, 0],
           Centered.cuboid([this.cutoutDepth, this.cutoutWidth / 2, this.endThickness]),
         ),
@@ -134,13 +131,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       ),
 
       // 底面
-      translateZ(
-        this.endThickness,
-        subtract(
-          Centered.cuboid([1, bottomWidth, this.baseLength - this.endThickness]),
-          translate([0, this.grooveDistance / 2, 0], Centered.cuboid([1, this.grooveWidth, 12])),
-        ),
-      ),
+      translateZ(this.endThickness, Centered.cuboid([1, bottomWidth, this.baseLength - this.endThickness])),
 
       // 底面と横壁の隙間を埋める
       intersect(
@@ -202,7 +193,7 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       rotateY(
         rotateYRad,
         hull(
-          translate([-height, 0, 0], Centered.cuboid([height, 3, additionalLength])),
+          translate([-height - 2, 0, 0], Centered.cuboid([height + 2, 1, additionalLength])),
           translate([-1, 0, 0], Centered.cuboid([1, width, additionalLength])),
         ),
       ),
@@ -218,6 +209,22 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
               translate([0, 0, this.baseLength - nanameStartOffset], Centered.cuboid([100, 100, 100])),
             ),
             nanameJoint,
+          ),
+          hull(
+            intersect(
+              nanameJoint,
+              translate([-13, 0, this.baseLength - nanameStartOffset - 4], Centered.cuboid([10, 100, 3])),
+            ),
+            intersect(
+              baseJoint,
+              translate([-13, 0, this.baseLength - nanameStartOffset - 4], Centered.cuboid([10, 100, 4])),
+            ),
+          ),
+
+          // ケーブルをまとめるための橋
+          translate(
+            [-height - 1, 0, this.baseLength - 3],
+            Centered.cuboid([1, this.width / 2 - width - this.basementThickness - 0.5, 5]),
           ),
         ),
         translate(
@@ -347,17 +354,17 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
   public get gripJoint(): Geom3 {
     const width = 2;
     const height = 5;
-    const length = 16;
+    const length = 14;
     const yOffset = this.width / 2 - width - commonSizeValue.gripSideThickness - 0.3;
 
     // 以下、CGモデルを目で見て適当に調整した値
-    const jointOffsetZ = 8.5;
+    const jointOffsetZ = 7.3;
     const jointLength = 7;
 
     return union(
       subtract(
         translate(
-          [-height - 3.5, yOffset, 0],
+          [-height - 3.2, yOffset, 0],
           rotateY(
             degToRad(commonSizeValue.gripRotateDegree - commonSizeValue.batteryBoxRotateDegree),
             Centered.cuboid([height, width, length]),
@@ -412,6 +419,8 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
             rectangle({size: [10, 10], center: [-10 / 2, 10 / 2]}),
           ),
         ),
+        Centered.cuboid([100, 100, 1]),
+        translateZ(1, chamfer(union(this.makeTopFaceHalf(), rectangle({size: [5, this.topWidth]})), 1)),
       ),
     ].map((g) => translateX(this.baseHeight, g));
   }
@@ -433,7 +442,24 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
   }
 
   public get full2(): Geom3[] {
-    return halfToFull(this.half2);
+    return [
+      subtract(
+        union(halfToFull(this.half2)),
+
+        // ケーブルを通すための溝と穴
+        translate(
+          [0, -this.grooveDistance / 2 - this.grooveWidth, this.endThickness - this.grooveDepth],
+          Centered.cuboid([this.grooveHeight, this.grooveWidth, this.grooveDepth]),
+        ),
+        translate([0, -this.grooveDistance / 2 - this.grooveWidth, 0], Centered.cuboid([1, this.grooveWidth, 10])),
+
+        // switchSupportとの干渉を避ける穴
+        cuboid({size: [2, 17.6, 11], center: [0, 0, 11 / 2 + this.endThickness + 4]}),
+
+        // RP2040用のリセットボタンアクセス用穴 電池ボックスの穴と同じ位置
+        cuboid({size: [100, 6, 4], center: [0, 1, 4 / 2 + this.endThickness + 4]}),
+      ),
+    ];
   }
 
   public get fullWithBatteryBox(): Geom3[] {
@@ -457,6 +483,29 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       rotateY(-Math.PI / 2, batteryBox),
     );
   };
+
+  public get switchPusher(): Geom3[] {
+    const baseWidth = 20;
+    const mainWidth = 8;
+    const thickness = 4;
+    const baseThickness = 1.5;
+    const mainHeight = this.baseHeight - 2;
+    const maxHeight = this.baseHeight + 2;
+    const holeOffset = 16.5 / 2 - 1.5 / 2;
+    const holeRadius = 1;
+
+    return [
+      subtract(
+        union(
+          cuboid({size: [thickness, baseWidth, baseThickness], center: [0, 0, baseThickness / 2]}),
+          cuboid({size: [thickness - 1, mainWidth, mainHeight], center: [0, 0, mainHeight / 2]}),
+          cuboid({size: [thickness - 1, 4, maxHeight], center: [0, 0, maxHeight / 2]}),
+        ),
+        cylinder({radius: holeRadius, height: baseThickness, center: [0, holeOffset, baseThickness / 2]}),
+        cylinder({radius: holeRadius, height: baseThickness, center: [0, -holeOffset, baseThickness / 2]}),
+      ),
+    ];
+  }
 }
 
 export class BatteryBox extends Cacheable implements Viewable {

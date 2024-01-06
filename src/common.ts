@@ -8,6 +8,7 @@ export const colors = {
 // 循環参照してしまうような定数定義はここで行う
 export const commonSizeValue = {
   gripThickness: 1,
+  gripWidth: 30,
   gripSideThickness: 2,
   buttonPadSideScrewDistanceFromEdge: 6.5,
   /** トリガーとグリップの接続部分の高さ */

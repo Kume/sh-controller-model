@@ -8,7 +8,7 @@ import {mirrorZ, translate, translateZ} from '@jscad/modeling/src/operations/tra
 import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {BatteryBoxTriggerJoint} from './BatteryBoxTriggerJoint';
 
-const looseOutlineOffset = 0.3;
+const looseOutlineOffset = 0.5;
 
 export class ButtonPadJoint extends Cacheable implements Viewable {
   public readonly screwBaseThickness = 2;
@@ -52,7 +52,7 @@ export class ButtonPadJoint extends Cacheable implements Viewable {
   }
 
   public get looseHeadOutline(): Geom3[] {
-    return this.makeHeadOutline(0.3);
+    return this.makeHeadOutline(0.5);
   }
 
   public get headOutline(): Geom3[] {

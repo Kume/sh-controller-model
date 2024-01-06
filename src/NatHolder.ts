@@ -50,7 +50,7 @@ export class NatHolder extends Cacheable implements Viewable {
   }
 
   public get minimumLooseOutline(): Geom3[] {
-    return this.makeOutline(0.3);
+    return this.makeOutline(0.5);
   }
 
   private makeOutline(offset = 0): Geom3[] {

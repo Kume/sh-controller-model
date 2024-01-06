@@ -131,8 +131,8 @@ export class ButtonPad extends Cacheable implements Viewable {
    * 人差し指が引っかからないようにするためのナナメのくぼみ
    */
   @cacheGetter
-  public get fingerSubtraction(): Geom3 {
-    return addColor([1, 0, 0], union(hull(this.fingerSubtractionPoints2()), hull(this.fingerSubtractionPoints1())));
+  public get fingerSubtraction(): Geom3[] {
+    return addColor([1, 0, 0], [hull(this.fingerSubtractionPoints2()), hull(this.fingerSubtractionPoints1())]);
   }
 
   public fingerSubtractionPoints1(radius = 0.01): Geom3[] {
@@ -241,7 +241,7 @@ export class ButtonPad extends Cacheable implements Viewable {
           ...this.natHolder.full.map(this.transformNatHolder),
           ...this.dipForBoardHalf,
 
-          this.fingerSubtraction,
+          ...this.fingerSubtraction,
           this.sideScrew.headAndSquareBodyLooseOutline,
 
           // トリガーの前方ジョイント部分と重なる部分を削る
@@ -352,7 +352,7 @@ export class ButtonPad extends Cacheable implements Viewable {
           // トリガーとの接合部分を避けるためのくぼみ
           translate([this.gripJointPoints[1][0], this.board.width / 2, 0], Centered.cuboid([10, 1, 10])),
 
-          this.fingerSubtraction,
+          ...this.fingerSubtraction,
         ),
       ),
     ];

@@ -51,6 +51,8 @@ export class SHController extends Cacheable implements Viewable {
       // {label: 'mainBoard_outline', model: () => this.trigger.grip.board.full},
       {label: 'grip', model: () => this.trigger.gripWithJoint},
       // {label: 'grip_debug', model: () => union(this.trigger.grip.halfRight, this.trigger.grip.halfLeft)},
+      {label: 'switchSupport', model: () => mirrorZ(this.trigger.grip.board.xiao.switchSupport)},
+      {label: 'switchPusher', model: () => mirrorZ(this.trigger.grip.batteryBoxHolder.switchPusher)},
     ];
   }
 

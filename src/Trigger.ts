@@ -164,7 +164,7 @@ export class Trigger extends Cacheable implements Viewable {
           ),
         ),
         // サイドの出っ張り（ネジ穴部分）
-        translate([12, 0], Centered.rectangle([22, this.grip.width / 2 + 6])),
+        translate([15, 0], Centered.rectangle([19, this.grip.width / 2 + 6])),
       ),
       // 穴の手前側の形状
       hull(
@@ -570,8 +570,18 @@ export class Trigger extends Cacheable implements Viewable {
             center: [buttonFaceBottomEndX - 3, bottomWidth / 2, this.maxZ - bottomSphereRadius],
           }),
 
+          // 頂上付近
+          sphere({
+            radius: 2,
+            center: [buttonFaceBottomEndX - 3, 0, this.maxZ - 2 / 2],
+          }),
+          sphere({
+            radius: 2,
+            center: [buttonFaceBottomEndX - 3, bottomWidth / 2 - 5, this.maxZ - 2 / 2],
+          }),
+
           sphere({center: [buttonFaceBottomEndX - 8, this.width / 2 - 4, 12]}),
-          sphere({center: [15, this.width / 2 - sphereRadius, 0]}),
+          sphere({center: [18, this.width / 2 - sphereRadius, 0]}),
           sphere({center: [0, this.innerSmallWidth / 2, 0], radius: 0.00001}),
           sphere({center: [0, this.innerSmallWidth / 2 + this.grip.sideThickness, 0], radius: 0.00001}),
         ),

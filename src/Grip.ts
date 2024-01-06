@@ -31,7 +31,7 @@ export class Grip extends Cacheable implements Viewable {
   public readonly sideThickness = commonSizeValue.gripSideThickness;
   public readonly height =
     this.topWallThickness + this.board.height + this.mainBoardTopMargin + this.mainBoardBottomMargin + this.thickness;
-  public readonly width = 30;
+  public readonly width = commonSizeValue.gripWidth;
   public readonly radius = 6;
   public readonly length = 68.5;
   public readonly usbHoleWidth = 4.85 * 2;
@@ -67,6 +67,7 @@ export class Grip extends Cacheable implements Viewable {
         {label: 'halfLeft', model: () => this.halfLeft},
         {label: 'halfWithBoard', model: () => this.halfWithBoard},
         {label: 'halfWithBatteryBox', model: () => this.halfWithBatteryBox},
+        {label: 'fullWithBoard', model: () => this.fullWithBoard},
         {label: 'debug', model: () => this.debug},
       ];
     });
@@ -134,6 +135,10 @@ export class Grip extends Cacheable implements Viewable {
     return [...this.halfWithBoard, ...this.batteryBoxHolder.halfWithBatteryBox.map(this.transformBatteryBoxHolder)];
   }
 
+  public get fullWithBoard(): Geom3[] {
+    return [...this.full, ...this.board.fullWithSwitchSupport.map((g) => this.transformMainBoard(g))];
+  }
+
   public get debug(): Geom3[] {
     const face = union(
       this.outlineBasicFaceHalf,
@@ -187,9 +192,9 @@ export class Grip extends Cacheable implements Viewable {
         polygon({
           points: [
             [0, 0],
-            [0, switchHoleWidth + 1.9],
-            [-switchHoleWidth + 0.5, switchHoleWidth + 1.9],
-            [-switchHoleWidth + 0.5, switchHoleWidth],
+            [0, switchHoleWidth + 1.5],
+            [-switchHoleWidth + 1.3, switchHoleWidth + 1.9],
+            [-switchHoleWidth + 1.3, switchHoleWidth],
           ],
         }),
       ),

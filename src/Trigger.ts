@@ -105,6 +105,7 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'fullWithGrip3', model: () => this.fullWithGrip3},
         {label: 'fullWithGripAndBatteryBox3', model: () => this.fullWithGripAndBatteryBox3},
         {label: 'halfWithGripAndBatteryBox3', model: () => this.halfWithGripAndBatteryBox3},
+        {label: 'fullWithGripAndBatteryBoxAndBoard3', model: () => this.fullWithGripAndBatteryBoxAndBoard3},
         {label: 'halfGrip3', model: () => this.halfGrip3},
         {label: 'jointHalf', model: () => this.buttonFace.jointHalf},
       ];
@@ -282,11 +283,23 @@ export class Trigger extends Cacheable implements Viewable {
     return [...this.full3, ...this.gripWithJoint];
   }
 
+  public get fullWithGripAndBoard3(): Geom3[] {
+    return [...this.full3, ...this.grip.fullWithBoard.map(this.transformGrip), ...halfToFull(this.gripJoint3Half)];
+  }
+
   public get fullWithGripAndBatteryBox3(): Geom3[] {
     return [
       ...this.full3,
       ...this.gripWithJoint,
       ...this.grip.batteryBoxHolder.full2.map(this.grip.transformBatteryBoxHolder).map(this.transformGrip),
+    ];
+  }
+
+  public get fullWithGripAndBatteryBoxAndBoard3(): Geom3[] {
+    return [
+      ...this.fullWithGripAndBoard3,
+      ...this.grip.batteryBoxHolder.full2.map(this.grip.transformBatteryBoxHolder).map(this.transformGrip),
+      ...halfToFull(this.buttonFace.boardHalf).map(this.transformForButtonFace),
     ];
   }
 
@@ -300,7 +313,7 @@ export class Trigger extends Cacheable implements Viewable {
   }
 
   public get gripWithJoint(): Geom3[] {
-    return [...this.grip.full.map(this.transformGrip), ...addColor([0.6, 0.3, 0.9], halfToFull(this.gripJoint3Half))];
+    return [...this.grip.full.map(this.transformGrip), ...halfToFull(this.gripJoint3Half)];
   }
 
   @cacheGetter
@@ -486,6 +499,14 @@ export class Trigger extends Cacheable implements Viewable {
 
   public get half2WithBoard(): Geom3[] {
     return [...this.half2, ...this.buttonFace.boardHalf.map(this.transformForButtonFace)];
+  }
+
+  public get half3WithBoard(): Geom3[] {
+    return [...this.half3, ...this.buttonFace.boardHalf.map(this.transformForButtonFace)];
+  }
+
+  public get half3WithBoardAndGrip(): Geom3[] {
+    return [...this.half3WithBoard, ...this.gripJoint3Half];
   }
 
   public get jointSocket(): Geom3[] {

@@ -10,6 +10,4 @@ const config = defineConfig({
   base: '/sh-controller-model/',
 });
 
-console.log('xxxx config', config);
-
 export default config;

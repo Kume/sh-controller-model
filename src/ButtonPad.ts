@@ -192,7 +192,12 @@ export class ButtonPad extends Cacheable implements Viewable {
   }
 
   public get fullWithCoverAndBoard(): Geom3[] {
-    return [...this.full, ...this.coverFull, ...this.board.outline.map(this.transformBoard)];
+    return [
+      ...this.full,
+      ...this.coverFull,
+      ...this.board.outline.map(this.transformBoard),
+      ...this.stick.outline.map((g) => this.transformStick(g)),
+    ];
   }
 
   public get positionReferencesHalf(): Geom3[] {

@@ -38,12 +38,12 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   public get outlineHalf(): Geom3[] {
-    const h = 5;
+    const h = 8;
     return [
       addColor(colors.translucentBoard, this.boardHalf),
       ...this.switchesHalf.map((sw) => sw.outline),
       addColor([0, 0, 0, 0.8], this.transformChip(this.chip.outline)),
-      addColor([0.7, 0, 0], translate([17, 0, -h - this.thickness], Centered.cuboid([6, 1.5, 5]))),
+      addColor([0.7, 0, 0], translate([4, 0, -h - this.thickness], Centered.cuboid([14, 3, h]))),
     ];
   }
 

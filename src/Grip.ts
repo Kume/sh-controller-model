@@ -67,6 +67,7 @@ export class Grip extends Cacheable implements Viewable {
         {label: 'halfLeft', model: () => this.halfLeft},
         {label: 'halfWithBoard', model: () => this.halfWithBoard},
         {label: 'halfWithBatteryBox', model: () => this.halfWithBatteryBox},
+        {label: 'halfRightWithBatteryBox', model: () => this.halfRightWithBatteryBox},
         {label: 'fullWithBoard', model: () => this.fullWithBoard},
         {label: 'debug', model: () => this.debug},
       ];
@@ -133,6 +134,14 @@ export class Grip extends Cacheable implements Viewable {
 
   public get halfWithBatteryBox(): Geom3[] {
     return [...this.halfWithBoard, ...this.batteryBoxHolder.halfWithBatteryBox.map(this.transformBatteryBoxHolder)];
+  }
+
+  public get halfRightWithBatteryBox(): Geom3[] {
+    return [
+      ...this.halfRight,
+      ...this.board.half.map(this.transformMainBoard),
+      ...this.batteryBoxHolder.halfWithBatteryBox.map(this.transformBatteryBoxHolder),
+    ];
   }
 
   public get fullWithBoard(): Geom3[] {

@@ -2,7 +2,7 @@ import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {addColor, Cacheable, Centered, halfToFull, legacyCash} from './utls';
 import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {TactileSwitch} from './TactileSwitch';
-import {mirrorX, mirrorY, rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {rotateZ, translate, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {cuboid, cylinder} from '@jscad/modeling/src/primitives';
 import {Viewable, ViewerItem} from './types';
 import {colors} from './common';
@@ -38,12 +38,16 @@ export class ButtonBoard extends Cacheable implements Viewable {
   }
 
   public get outlineHalf(): Geom3[] {
-    const h = 8;
+    const connectorHeight = 6;
     return [
       addColor(colors.translucentBoard, this.boardHalf),
       ...this.switchesHalf.map((sw) => sw.outline),
       addColor([0, 0, 0, 0.8], this.transformChip(this.chip.outline)),
-      addColor([0.7, 0, 0], translate([4, 0, -h - this.thickness], Centered.cuboid([14, 3, h]))),
+      // connector
+      addColor(
+        [0.7, 0, 0],
+        translate([12.5, 0, -connectorHeight - this.thickness], Centered.cuboid([10, 2.4, connectorHeight])),
+      ),
     ];
   }
 

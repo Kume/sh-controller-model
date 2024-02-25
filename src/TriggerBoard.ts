@@ -18,7 +18,8 @@ export class TriggerBoard extends Cacheable implements Viewable {
   public readonly switchDistanceTopToBottom = 17;
   public readonly length = this.topSwitchDistance + this.switchDistanceTopToBottom + 5;
 
-  public readonly screwHoleDistance = this.topSwitchDistance + this.switchDistanceTopToBottom / 2;
+  public readonly screwHoleDistance = 10;
+  // public readonly screwHoleDistance = this.topSwitchDistance + this.switchDistanceTopToBottom / 2;
   public readonly screw = new Screw(7, 2.5, (g) => this.transformScrew(g));
 
   public get displayName(): string {
@@ -36,10 +37,16 @@ export class TriggerBoard extends Cacheable implements Viewable {
   }
 
   public get half(): Geom3[] {
+    const connectorHeight = 6;
     return [
       addColor(colors.translucentBoard, this.boardHalf),
       this.transformTopSwitch(this.tactileSwitch.outline),
       this.transformBottomSwitch(this.tactileSwitch.outline),
+      // connector
+      addColor(
+        [0.7, 0, 0],
+        translate([15, 0, -connectorHeight - this.thickness], Centered.cuboid([4.5, 5, connectorHeight])),
+      ),
     ];
   }
 

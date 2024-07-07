@@ -1,18 +1,18 @@
 import {SHController} from '../SHController';
 import {JSCADView} from './JSCADView';
-import {useEffect, useMemo, useState} from 'react';
-import {ButtonPad} from '../ButtonPad';
-import {ButtonBoard} from '../ButtonBoard';
+import {useMemo, useState} from 'react';
 import {Viewable, ViewerItem} from '../types';
 import {SwitchJoyStick} from '../SwitchJoyStick';
 import {Screw} from '../Screw';
 import {translate} from '@jscad/modeling/src/operations/transforms';
 import {AngleSample} from '../samples/AngleSample';
+import {ThinJointSample} from '../samples/ThinJointSample';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
 const screw = new Screw(7, 2.5, (g) => translate([0, 0, 0], g));
 const sample = new AngleSample();
+const sample2 = new ThinJointSample();
 const viewableValues: readonly Viewable[] = [
   main,
   main.trigger.grip.board,
@@ -24,10 +24,12 @@ const viewableValues: readonly Viewable[] = [
   main.trigger.grip.batteryBoxHolder,
   main.trigger.grip.batteryBoxHolder.batteryBox,
   main.trigger.board,
+  main.triggerJoint,
   main.buttonPadJoint,
   screw,
   joyStick,
   sample,
+  sample2,
 ];
 
 interface ViewerItemState {

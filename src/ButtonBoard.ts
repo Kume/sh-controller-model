@@ -39,6 +39,7 @@ export class ButtonBoard extends Cacheable implements Viewable {
 
   public get outlineHalf(): Geom3[] {
     const connectorHeight = 6;
+    const connectorLegHeight = 2.5;
     return [
       addColor(colors.translucentBoard, this.boardHalf),
       ...this.switchesHalf.map((sw) => sw.outline),

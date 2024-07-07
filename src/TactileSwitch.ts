@@ -1,5 +1,5 @@
 import {Geom3} from '@jscad/modeling/src/geometries/geom3';
-import {cuboid, cylinder} from '@jscad/modeling/src/primitives';
+import {cuboid, cylinder, rectangle} from '@jscad/modeling/src/primitives';
 import {union} from '@jscad/modeling/src/operations/booleans';
 import {addColor, Cacheable, octagon} from './utls';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
@@ -61,6 +61,34 @@ export class TactileSwitch extends Cacheable {
       hull(
         translateZ(this.switchHeight - capHeight, extrudeLinear({height: capHeight}, octagon(this.looseSwitchRadius))),
         extrudeLinear({height: this.switchHeight}, octagon(this.switchRadius + this.looseOffset)),
+      ),
+    );
+    return this.transform(union(base, sw));
+  }
+
+  public get looseSquareToOctagonOutlineForButtonFace(): Geom3 {
+    const capHeight = 3.5;
+    const base = hull(
+      extrudeLinear(
+        {height: this.baseHeight + this.looseOffset},
+        rectangle({size: [(this.baseRadius + this.looseOffset) * 2, (this.baseRadius + this.looseOffset) * 2]}),
+      ),
+      extrudeLinear(
+        {height: 0.0001},
+        rectangle({
+          size: [(this.baseRadius + this.looseOffset) * 2, (this.baseRadius + this.looseOffset) * 2],
+          center: [3, 0],
+        }),
+      ),
+    );
+    const sw = translateZ(
+      this.baseHeight,
+      hull(
+        translateZ(this.switchHeight - capHeight, extrudeLinear({height: capHeight}, octagon(this.looseSwitchRadius))),
+        extrudeLinear(
+          {height: this.switchHeight},
+          rectangle({size: [(this.switchRadius + this.looseOffset) * 2, (this.switchRadius + this.looseOffset) * 2]}),
+        ),
       ),
     );
     return this.transform(union(base, sw));

@@ -95,6 +95,7 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'half2', model: () => this.half2},
         {label: 'half3', model: () => this.half3},
         {label: 'full3', model: () => this.full3},
+        {label: 'holeReverse', model: () => this.holeReverse},
         {label: 'half2WithBoard', model: () => this.half2WithBoard},
         {label: 'buttonPadJointBaseHalf', model: () => this.buttonPadJointBaseHalf},
         {
@@ -154,30 +155,32 @@ export class Trigger extends Cacheable implements Viewable {
   public get buttonPadJointFace(): Geom2 {
     return subtract(
       union(
-        translate([1, 0], Centered.rectangle([this.length - this.buttonFace.thickness - 5, this.grip.width / 2])),
+        translate([1, 0], Centered.rectangle([this.length - this.buttonFace.thickness - 4, this.grip.width / 2])),
+        // translate([1, 0], Centered.rectangle([this.length - this.buttonFace.thickness - 2, this.grip.width / 2 - 4])),
+        translate([1, 0], Centered.rectangle([this.length - this.buttonFace.thickness - 1, this.grip.width / 2 - 5.5])),
 
         // 先端方向のナナメ形状とかを作る
-        hull(
-          translate([this.length - this.buttonFace.thickness - 7 - 2, 0], Centered.rectangle([6, this.grip.width / 2])),
-          translate(
-            [this.length - this.buttonFace.thickness - 6 - 2, 0],
-            Centered.rectangle([6 + 2, this.grip.width / 2 - 5.5]),
-          ),
-        ),
+        // hull(
+        //   translate([this.length - this.buttonFace.thickness - 7 - 2, 0], Centered.rectangle([6, this.grip.width / 2])),
+        //   translate(
+        //     [this.length - this.buttonFace.thickness - 6 - 2, 0],
+        //     Centered.rectangle([2 + 2, this.grip.width / 2 - 5.5]),
+        //   ),
+        // ),
         // サイドの出っ張り（ネジ穴部分）
         translate([15, 0], Centered.rectangle([19, this.grip.width / 2 + 6])),
       ),
       // 穴の手前側の形状
       hull(
-        translate([13.5 - 3, 0], Centered.rectangle([14.5 + 3 * 2, this.grip.width / 2 - 8])),
-        translate([15, 0], Centered.rectangle([13, this.grip.width / 2 - 5])),
+        translate([13.5 - 3, 0], Centered.rectangle([17 + 3 * 2, this.grip.width / 2 - 8])),
+        translate([23, 0], Centered.rectangle([7, this.grip.width / 2 - 2])),
       ),
 
       // 穴を先端方向に拡張する
-      translate([15, 0], Centered.rectangle([19, this.grip.width / 2 - 8])),
+      // translate([15, 0], Centered.rectangle([19, this.grip.width / 2 - 8])),
 
       // 先端方向のくぼみ
-      translate([this.length - this.buttonFace.thickness - 11, 0], Centered.rectangle([11, 3])),
+      translate([this.length - this.buttonFace.thickness - 11, 0], Centered.rectangle([11, 5])),
     );
   }
 
@@ -269,6 +272,10 @@ export class Trigger extends Cacheable implements Viewable {
         this.buttonFace.screwHole.map(this.transformForButtonFace),
       ),
     ];
+  }
+
+  public get holeReverse(): Geom3[] {
+    return [subtract(union(halfToFull(this.half3)), this.full3)];
   }
 
   public get halfGrip3(): Geom3[] {
@@ -862,8 +869,8 @@ class ButtonFace implements TriggerFace {
   }
 
   public get screwHole(): Geom3[] {
-    const screw = new Screw(7, commonSizeValue.basicScrewHeadHeight, (g) =>
-      translate([-this.boardX + 2, 0, this.boardDistance + this.board.screwHoleDistance], rotateY(Math.PI / 2, g)),
+    const screw = new Screw(10, commonSizeValue.basicScrewHeadHeight, (g) =>
+      translate([-this.boardX + 5.1, 0, this.boardDistance + this.board.screwHoleDistance], rotateY(Math.PI / 2, g)),
     );
     return [...screw.octagonLooseOutline, screw.octagonDriverHoleOutline];
   }

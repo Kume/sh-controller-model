@@ -38,6 +38,7 @@ export class TriggerBoard extends Cacheable implements Viewable {
 
   public get half(): Geom3[] {
     const connectorHeight = 6;
+    const connectorLegHeight = 2.5;
     return [
       addColor(colors.translucentBoard, this.boardHalf),
       this.transformTopSwitch(this.tactileSwitch.outline),
@@ -47,6 +48,8 @@ export class TriggerBoard extends Cacheable implements Viewable {
         [0.7, 0, 0],
         translate([15, 0, -connectorHeight - this.thickness], Centered.cuboid([4.5, 5, connectorHeight])),
       ),
+      // connector leg
+      addColor([0.7, 0, 0], translate([15, 0, 0], Centered.cuboid([4.5, 5, connectorLegHeight]))),
     ];
   }
 
@@ -55,10 +58,13 @@ export class TriggerBoard extends Cacheable implements Viewable {
   }
 
   public get looseOutlineHalf(): Geom3[] {
+    const connectorLegHeight = 2.5;
     return [
       addColor(colors.translucentBoard, this.boardHalf),
-      this.transformTopSwitch(this.tactileSwitch.looseOctagonOutline),
-      this.transformBottomSwitch(this.tactileSwitch.looseOctagonOutline),
+      this.transformTopSwitch(this.tactileSwitch.looseSquareToOctagonOutlineForButtonFace),
+      this.transformBottomSwitchForOutline(this.tactileSwitch.looseSquareToOctagonOutlineForButtonFace),
+      // connector leg
+      addColor([0.7, 0, 0], translate([15, 0, 0], Centered.cuboid([4.5, 5, connectorLegHeight]))),
     ];
   }
 
@@ -77,6 +83,10 @@ export class TriggerBoard extends Cacheable implements Viewable {
 
   public transformBottomSwitch(g: Geom3): Geom3 {
     return translate([this.topSwitchDistance + this.switchDistanceTopToBottom, 0, 0], rotateZ(Math.PI / 2, g));
+  }
+
+  public transformBottomSwitchForOutline(g: Geom3): Geom3 {
+    return translate([this.topSwitchDistance + this.switchDistanceTopToBottom, 0, 0], g);
   }
 
   private transformScrew(g: Geom3): Geom3 {

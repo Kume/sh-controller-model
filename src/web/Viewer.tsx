@@ -1,12 +1,20 @@
 import {SHController} from '../SHController';
 import {JSCADView} from './JSCADView';
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import {Viewable, ViewerItem} from '../types';
 import {SwitchJoyStick} from '../SwitchJoyStick';
 import {Screw} from '../Screw';
 import {translate} from '@jscad/modeling/src/operations/transforms';
 import {AngleSample} from '../samples/AngleSample';
 import {ThinJointSample} from '../samples/ThinJointSample';
+import {
+  skeletonToViewStateNode,
+  SkeletonView,
+  SkeletonViewMenu,
+  SkeletonViewStateMapNode,
+  SkeletonViewStateNode,
+} from './SkeletonView';
+import {Skeleton} from '../ver1_1/Skeleton';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
@@ -57,17 +65,34 @@ function getVisibleItems(viewables: readonly Viewable[], state: ViewerState): (V
 
 export const Viewer: React.FC = () => {
   const [state, setState] = useState<ViewerState>({});
+  const [skeletonState, setSkeletonState] = useState<SkeletonViewStateNode>({
+    ...skeletonToViewStateNode(Skeleton),
+    isOpen: true,
+    isVisible: true,
+  });
+
+  useEffect(() => {
+    setSkeletonState({
+      ...skeletonToViewStateNode(Skeleton),
+      isOpen: true,
+      isVisible: true,
+    });
+  }, [Skeleton]);
 
   const visibleItems = useMemo(() => getVisibleItems(viewableValues, state), [state]);
 
   return (
     <div style={{display: 'flex'}}>
       <div style={{width: 1030, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-around'}}>
+        <SkeletonView state={skeletonState} />
         {visibleItems.map((item, i) => (
           <JSCADView key={item.fullName} title={item.fullName} solids={item.model()} />
         ))}
       </div>
       <ul>
+        <li>
+          <SkeletonViewMenu state={skeletonState} setState={setSkeletonState} label="スケルトン" />
+        </li>
         {viewableValues.map((viewable) => (
           <li key={viewable.displayName}>
             <p

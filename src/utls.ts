@@ -153,3 +153,11 @@ export function chamfer(face: Geom2, length: number): Geom3[] {
     ),
   ];
 }
+
+export function isReadonlyArray<T>(value: readonly T[] | unknown): value is readonly T[] {
+  return Array.isArray(value);
+}
+
+export function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && value.constructor === Object;
+}

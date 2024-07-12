@@ -1,12 +1,9 @@
-import {isReadonlyArray} from '../utls';
+import {addColor, isReadonlyArray} from '../utls';
 import React, {useMemo} from 'react';
 import {JSCADView} from './JSCADView';
 import {sphere} from '@jscad/modeling/src/primitives';
 import {Transform3D} from '../utils/Transform';
-
-export type RecursiveValue<T> = T | readonly T[] | {readonly [key: string]: RecursiveValue<T>};
-
-type Vec3 = readonly [number, number, number];
+import {PointsViewMeta, PointViewMeta, RecursiveValue, Vec3} from '../types';
 
 export interface SkeletonViewStateMapNode {
   readonly type: 'map';
@@ -27,6 +24,7 @@ export interface SkeletonViewStatePointNode {
   readonly type: 'point';
   readonly isVisible?: boolean;
   readonly isOpen?: boolean;
+  readonly meta?: PointViewMeta;
   readonly point: Vec3;
 }
 
@@ -34,6 +32,7 @@ export type SkeletonViewStateNode = SkeletonViewStateMapNode | SkeletonViewState
 
 interface SkeletonCommon {
   readonly points?: RecursiveValue<Vec3>;
+  readonly pointsViewMeta?: PointsViewMeta;
   readonly transformSelf?: Transform3D;
   readonly children?: Readonly<Record<string, SkeletonCommon>>;
 }
@@ -43,30 +42,37 @@ export function skeletonToViewStateNode(skeleton: SkeletonCommon): SkeletonViewS
     type: 'map',
     transformSelf: skeleton.transformSelf,
     children: Object.fromEntries([
-      ...Object.entries(skeleton.points ?? {}).map(([k, v]) => [k, recursivePointsToSkeletonViewStateNode(v)]),
+      ...Object.entries(skeleton.points ?? {}).map(([k, v]) => [
+        k,
+        recursivePointsToSkeletonViewStateNode(v, skeleton.pointsViewMeta && (skeleton.pointsViewMeta[k] ?? {})),
+      ]),
       ...Object.entries(skeleton.children ?? {}).map(([k, v]) => [k, skeletonToViewStateNode(v)]),
     ]),
   };
 }
 
-export function recursivePointsToSkeletonViewStateNode(points: RecursiveValue<Vec3>): SkeletonViewStateNode {
+export function recursivePointsToSkeletonViewStateNode(
+  points: RecursiveValue<Vec3>,
+  meta: PointViewMeta | undefined,
+): SkeletonViewStateNode {
   if (isReadonlyArray(points)) {
     if (isVec3(points)) {
       return {
         type: 'point',
         point: points,
+        meta,
       };
     } else {
       return {
         type: 'list',
-        children: points.map(recursivePointsToSkeletonViewStateNode),
+        children: points.map((point) => recursivePointsToSkeletonViewStateNode(point, meta)),
       };
     }
   } else {
     return {
       type: 'map',
       children: Object.fromEntries(
-        Object.entries(points).map(([k, v]) => [k, recursivePointsToSkeletonViewStateNode(v)]),
+        Object.entries(points).map(([k, v]) => [k, recursivePointsToSkeletonViewStateNode(v, meta)]),
       ),
     };
   }
@@ -78,7 +84,8 @@ export function isVec3(value: Vec3 | readonly unknown[]): value is Vec3 {
 
 interface VisiblePoint {
   readonly point: Vec3;
-  readonly color: Vec3;
+  readonly color: Vec3 | undefined;
+  readonly radius: number | undefined;
 }
 
 function visiblePoints(node: SkeletonViewStateNode, forceVisible = false): VisiblePoint[] {
@@ -95,8 +102,12 @@ function visiblePoints(node: SkeletonViewStateNode, forceVisible = false): Visib
     }
     case 'list':
       return Object.values(node.children).flatMap((child) => visiblePoints(child, forceVisible || node.isVisible));
-    case 'point':
-      return forceVisible || node.isVisible ? [{point: node.point, color: [1, 0, 0]}] : [];
+    case 'point': {
+      const isVisible = node.meta
+        ? (forceVisible && node.meta.defaultVisible) || node.isVisible
+        : forceVisible || node.isVisible;
+      return isVisible ? [{point: node.point, color: node.meta?.color, radius: node.meta?.radius}] : [];
+    }
   }
 }
 
@@ -167,6 +178,12 @@ interface Props {
 export const SkeletonView: React.FC<Props> = ({state}) => {
   const points = useMemo(() => visiblePoints(state), [state]);
   return (
-    <JSCADView title={'スケルトン'} solids={points.map((point) => sphere({center: [...point.point], radius: 1}))} />
+    <JSCADView
+      title={'スケルトン'}
+      solids={points.map((point) => {
+        const geom = sphere({center: [...point.point], radius: point.radius ?? 1});
+        return point.color ? addColor(point.color, geom) : geom;
+      })}
+    />
   );
 };

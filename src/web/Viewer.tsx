@@ -7,21 +7,18 @@ import {Screw} from '../Screw';
 import {translate} from '@jscad/modeling/src/operations/transforms';
 import {AngleSample} from '../samples/AngleSample';
 import {ThinJointSample} from '../samples/ThinJointSample';
-import {
-  skeletonToViewStateNode,
-  SkeletonView,
-  SkeletonViewMenu,
-  SkeletonViewStateMapNode,
-  SkeletonViewStateNode,
-} from './SkeletonView';
+import {skeletonToViewStateNode, SkeletonView, SkeletonViewMenu, SkeletonViewStateNode} from './SkeletonView';
 import {Skeleton} from '../ver1_1/Skeleton';
+import {ButtonPad1_1} from '../ver1_1/ButtonPad1_1';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
 const screw = new Screw(7, 2.5, (g) => translate([0, 0, 0], g));
 const sample = new AngleSample();
 const sample2 = new ThinJointSample();
+const buttonPad1_1 = new ButtonPad1_1();
 const viewableValues: readonly Viewable[] = [
+  buttonPad1_1,
   main,
   main.trigger.grip.board,
   main.trigger,

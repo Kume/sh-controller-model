@@ -161,3 +161,18 @@ export function isReadonlyArray<T>(value: readonly T[] | unknown): value is read
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && value.constructor === Object;
 }
+
+export function zipArray<T1, T2>(...items: [readonly T1[], readonly T2[]]): [T1, T2][] {
+  if (items[0].length !== items[1].length) {
+    throw new Error('Zipping array length mismatch');
+  }
+  const result: [T1, T2][] = [];
+  for (let i = 0; i < items[0].length; i++) {
+    result.push([items[0][i], items[1][i]]);
+  }
+  return result;
+}
+
+export function vec2ArrayToWritable(vecs: readonly (readonly [number, number])[]): [number, number][] {
+  return vecs.map((vec) => [...vec]);
+}

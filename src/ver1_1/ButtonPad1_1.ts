@@ -1,4 +1,4 @@
-import {Cacheable, cacheGetter, halfToFull} from '../utls';
+import {Cacheable, cacheGetter, halfToFull, vec2ArrayToWritable} from '../utls';
 import {Viewable, ViewerItem} from '../types';
 import {ButtonBoard} from '../ButtonBoard';
 import {SwitchJoyStick} from '../SwitchJoyStick';
@@ -12,24 +12,24 @@ import {hull} from '@jscad/modeling/src/operations/hulls';
 export class ButtonPad1_1 extends Cacheable implements Viewable {
   public readonly board = new ButtonBoard();
   public readonly stick = new SwitchJoyStick();
-  private readonly sk = Skeleton.ButtonPad;
+  public readonly sk = Skeleton.ButtonPad;
 
   public get viewerItems(): ViewerItem[] {
     return [{label: 'outline', model: () => this.outline}];
   }
 
   public get displayName() {
-    return 'ButtonPad1_1';
+    return this.constructor.name;
   }
 
-  private get outline(): Geom3[] {
+  public get outline(): Geom3[] {
     return [...halfToFull(this.outlineHalf)];
   }
 
   public get outlineHalf(): Geom3[] {
     return [
       subtract(
-        extrudeLinear({height: this.sk.z.total}, polygon({points: this.sk.point2ds.outlineHalf})),
+        extrudeLinear({height: this.sk.z.total}, polygon({points: vec2ArrayToWritable(this.sk.point2ds.outlineHalf)})),
         this.fingerSubtractionHalf,
       ),
     ];

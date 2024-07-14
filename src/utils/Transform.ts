@@ -1,4 +1,14 @@
+import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {rotateVec2} from '../utls';
+import {
+  mirrorX,
+  mirrorY,
+  mirrorZ,
+  rotateX,
+  rotateY,
+  rotateZ,
+  translate,
+} from '@jscad/modeling/src/operations/transforms';
 
 export type Vec3D = readonly [number, number, number];
 
@@ -58,6 +68,46 @@ export class Transform3D<Items extends readonly Transform3dItem[] = readonly Tra
 
   public applyVecs(points: readonly Vec3D[]): readonly Vec3D[] {
     return points.map((point) => this.applyVec(point));
+  }
+
+  public applyGeom(geom: Geom3): Geom3 {
+    for (const item of this.items) {
+      geom = this.applyItemToGeom(item, geom);
+    }
+    return geom;
+  }
+
+  public applyGeoms(geoms: readonly Geom3[]): Geom3[] {
+    return geoms.map((geom) => this.applyGeom(geom));
+  }
+
+  private applyItemToGeom(item: Transform3dItem, geom: Geom3): Geom3 {
+    switch (item[0]) {
+      case 'mirror':
+        switch (item[1]) {
+          case 'x':
+            return mirrorX(geom);
+          case 'y':
+            return mirrorY(geom);
+          case 'z':
+            return mirrorZ(geom);
+        }
+        break;
+      case 'rotate':
+        switch (item[1]) {
+          case 'x':
+            return rotateX(item[2], geom);
+          case 'y':
+            return rotateY(item[2], geom);
+          case 'z':
+            return rotateZ(item[2], geom);
+        }
+        break;
+      case 'translate': {
+        const [_, ...vec3] = item;
+        return translate(vec3, geom);
+      }
+    }
   }
 
   public reversed(): Transform3D {

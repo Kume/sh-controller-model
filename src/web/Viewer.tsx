@@ -1,24 +1,27 @@
-import {SHController} from '../SHController';
-import {JSCADView} from './JSCADView';
-import {useEffect, useMemo, useState} from 'react';
-import {Viewable, ViewerItem} from '../types';
-import {SwitchJoyStick} from '../SwitchJoyStick';
-import {Screw} from '../Screw';
 import {translate} from '@jscad/modeling/src/operations/transforms';
+import {useEffect, useMemo, useState} from 'react';
 import {AngleSample} from '../samples/AngleSample';
 import {ThinJointSample} from '../samples/ThinJointSample';
-import {skeletonToViewStateNode, SkeletonView, SkeletonViewMenu, SkeletonViewStateNode} from './SkeletonView';
+import {Screw} from '../Screw';
+import {SHController} from '../SHController';
+import {SwitchJoyStick} from '../SwitchJoyStick';
+import {Viewable, ViewerItem} from '../types';
+import {SHController1_1} from '../ver1_1/SHController1_1';
 import {Skeleton} from '../ver1_1/Skeleton';
-import {ButtonPad1_1} from '../ver1_1/ButtonPad1_1';
+import {JSCADView} from './JSCADView';
+import {skeletonToViewStateNode, SkeletonView, SkeletonViewMenu, SkeletonViewStateNode} from './SkeletonView';
 
 const main = new SHController();
 const joyStick = new SwitchJoyStick();
 const screw = new Screw(7, 2.5, (g) => translate([0, 0, 0], g));
 const sample = new AngleSample();
 const sample2 = new ThinJointSample();
-const buttonPad1_1 = new ButtonPad1_1();
+const v1_1 = new SHController1_1();
 const viewableValues: readonly Viewable[] = [
-  buttonPad1_1,
+  v1_1,
+  v1_1.buttonPad,
+  v1_1.trigger,
+  v1_1.trigger.grip,
   main,
   main.trigger.grip.board,
   main.trigger,

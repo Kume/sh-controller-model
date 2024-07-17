@@ -117,7 +117,7 @@ export class Transform3D<Items extends readonly Transform3dItem[] = readonly Tra
           case 'rotate':
             return ['rotate', item[1], -item[2]];
           case 'translate':
-            return ['translate', -item[0], -item[1], -item[2]];
+            return ['translate', -item[1], -item[2], -item[3]];
           case 'mirror':
             return item;
         }

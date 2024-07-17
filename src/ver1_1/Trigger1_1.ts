@@ -1,25 +1,29 @@
 import geometries from '@jscad/modeling/src/geometries';
 import {Geom3} from '@jscad/modeling/src/geometries/types';
+import {subtract} from '@jscad/modeling/src/operations/booleans';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
+import {hull} from '@jscad/modeling/src/operations/hulls';
+import {rotateY, translate, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {cuboid, sphere} from '@jscad/modeling/src/primitives';
+import {degToRad} from '@jscad/modeling/src/utils';
 import {Viewable, ViewerItem} from '../types';
 import {Cacheable, cacheGetter, Centered, halfToFull, vec2ArrayToWritable} from '../utls';
-import {Skeleton} from './Skeleton';
-import {subtract, union} from '@jscad/modeling/src/operations/booleans';
-import {cuboid, sphere} from '@jscad/modeling/src/primitives';
-import {hull} from '@jscad/modeling/src/operations/hulls';
-import {mirrorY, mirrorZ, rotateY, translateZ} from '@jscad/modeling/src/operations/transforms';
-import {degToRad} from '@jscad/modeling/src/utils';
+import {BatteryBoxHolder1_1} from './BatteryBoxHolder1_1';
 import {Grip1_1} from './Grip1_1';
+import {Skeleton} from './Skeleton';
 
 export class Trigger1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Trigger;
   public readonly grip = new Grip1_1();
+  public readonly batteryBoxHolder = new BatteryBoxHolder1_1();
   public readonly buttonFace = new ButtonFace();
 
   public get viewerItems(): ViewerItem[] {
     return [
       {label: 'outline', model: () => this.outline},
       {label: 'outlineHalf', model: () => this.outlineHalf},
+      {label: 'innerHalf', model: () => this.innerHalf},
+      {label: 'half', model: () => this.half},
     ];
   }
 
@@ -30,6 +34,16 @@ export class Trigger1_1 extends Cacheable implements Viewable {
   @cacheGetter
   public get outline(): Geom3[] {
     return [...halfToFull(this.outlineHalf)];
+  }
+
+  @cacheGetter
+  public get innerHalf(): Geom3[] {
+    return [...this.buttonFace.sk.transformSelf.applyGeoms(this.buttonFace.innerHalf)];
+  }
+
+  @cacheGetter
+  public get half(): Geom3[] {
+    return [subtract(this.outlineHalf, this.innerHalf)];
   }
 
   @cacheGetter
@@ -65,11 +79,28 @@ class ButtonFace extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Trigger.ButtonFace;
 
   public get viewerItems(): ViewerItem[] {
-    return [{label: 'outlineHalf', model: () => this.outlineHalf}];
+    return [
+      {label: 'innerHalf', model: () => this.innerHalf},
+      {label: 'outlineHalf', model: () => this.outlineHalf},
+    ];
   }
 
   public get displayName() {
     return this.constructor.name;
+  }
+
+  public get innerHalf(): Geom3[] {
+    return [
+      // ボードとそれを組み入れるために必要な最低限の空間
+      translate(
+        [Skeleton.Common.TactileSwitch.z.subterraneanHeight, 0, 0],
+        Centered.cuboid([
+          this.sk.Board.z.thickness + Skeleton.Common.TactileSwitch.z.total,
+          this.sk.Board.y.totalHalf + 0.5,
+          this.sk.z.topToBottom.valueAt('endWallStart'),
+        ]),
+      ),
+    ];
   }
 
   public get outlineHalf(): Geom3[] {
@@ -92,4 +123,23 @@ class ButtonFace extends Cacheable implements Viewable {
 
     return geometries.geom2.fromPoints(geometries.path2.toPoints(path).reverse());
   }
+}
+
+class Joint extends Cacheable implements Viewable {
+  public get viewerItems(): ViewerItem[] {
+    return [];
+  }
+
+  public get displayName() {
+    return this.constructor.name;
+  }
+
+  // public get outlineHalf() {
+
+  // }
+
+  // @cacheGetter
+  // public get screwPole(): Geom3 {
+  //   return extrudeLinear({height: })
+  // }
 }

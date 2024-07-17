@@ -27,8 +27,9 @@ export class Skeleton {
   public static get children() {
     return {
       ButtonPad: this.ButtonPad,
-      Grip: this.Grip,
       Trigger: this.Trigger,
+      Grip: this.Grip,
+      BatteryBoxHolder: this.BatteryBoxHolder,
     } as const;
   }
 
@@ -242,8 +243,22 @@ export class Skeleton {
       } as const;
       public static readonly y = {
         corner: 18,
+        get thickness() {
+          return S.Common.TactileSwitch.z.subterraneanHeight;
+        },
       } as const;
       public static readonly z = {
+        get topToBottom() {
+          return seqVal(
+            [
+              ['boardStart', 9],
+              ['boardEnd', S.Trigger.ButtonFace.Board.x.topToBottom.totalValue],
+              ['endWallStart', 0.5],
+              ['yobo', flex()],
+            ],
+            this.total,
+          );
+        },
         total: 50,
       };
       public static readonly other = {
@@ -314,9 +329,13 @@ export class Skeleton {
         };
         public static get transformSelf() {
           return new Transform3D([
-            ['translate', 9, 0, -S.Common.TactileSwitch.z.subterraneanHeight],
+            [
+              'translate',
+              S.Trigger.ButtonFace.z.topToBottom.valueAt('boardStart'),
+              0,
+              -S.Common.TactileSwitch.z.subterraneanHeight,
+            ],
             ['rotate', 'y', degToRad(-90)],
-            // ['translate', S.Trigger.x.total, 0, 0],
           ]);
         }
         public static get point2ds() {
@@ -361,21 +380,63 @@ export class Skeleton {
         }
       };
     };
+    public static readonly Joint = {
+      x: {},
+      y: {},
+      z: {
+        screwPoll: 4,
+      },
+      other: {
+        screwPollRadius: 5,
+      },
+    } as const;
   };
   static readonly Grip = class Grip {
     public static readonly x = {
       endThickness: 1.2,
+      topWall: 15,
       total: 75,
+      get ledHole() {
+        return seqVal([
+          ['start', 3.5],
+          ['end', S.Grip.other.ledHoleSize],
+        ]);
+      },
+      get resetSwitchHole() {
+        return seqVal([
+          ['start', 2.5],
+          ['end', S.Grip.other.resetSwitchHoleSize],
+        ]);
+      },
     } as const;
     public static get y() {
       return {
         total: this.End.y.total,
         totalHalf: this.End.y.totalHalf,
+        get ledHole() {
+          return seqVal([
+            ['start', 4.5],
+            ['end', S.Grip.other.ledHoleSize],
+          ]);
+        },
+        get resetSwitchHole() {
+          return seqVal([
+            ['start', 4],
+            ['end', S.Grip.other.resetSwitchHoleSize],
+          ]);
+        },
       } as const;
     }
     public static get z() {
       return {
         total: this.End.x.total,
+        ledHold: 0.5,
+      } as const;
+    }
+    public static get other() {
+      return {
+        ledHoleSize: 3,
+        resetSwitchHoleSize: 2.6,
       } as const;
     }
     public static get transformSelf() {
@@ -398,7 +459,7 @@ export class Skeleton {
             ['topWallEnd', this.topThickness],
             ['boardStart', 0.5],
             ['boardEnd', S.Grip.Board.z.total],
-            ['boardLegBottom', 2],
+            ['boardLegBottom', S.Grip.Board.z.legBottom],
             ['bottomWallStart', 0.5],
             ['bottom', 1],
           ]);
@@ -406,12 +467,26 @@ export class Skeleton {
         get total() {
           return this.topToBottom.totalValue;
         },
+        get bottomToTopForHoles() {
+          return seqVal(
+            [
+              ['switchHoleStart', flex()],
+              ['switchHoleEnd', 4],
+              ['usbHoleStart', 7.2],
+              ['usbHoleEnd', 4],
+              ['end', this.topThickness],
+            ],
+            this.total,
+          );
+        },
       },
       y: {
         total: 30,
         get totalHalf() {
           return this.total / 2;
         },
+        usbHoleHalf: 4.85,
+        switchHoleHalf: 3,
       },
       other: {
         radius: 6,
@@ -443,6 +518,7 @@ export class Skeleton {
     public static readonly Board = {
       x: {
         total: 60,
+        screw: 40,
       },
       y: addHalf(
         {
@@ -458,6 +534,7 @@ export class Skeleton {
         return {
           bottomToTop,
           total: bottomToTop.totalValue,
+          legBottom: 2,
         } as const;
       },
       get transformSelf() {
@@ -491,22 +568,45 @@ export class Skeleton {
       XiaoBoard: {
         x: {
           total: 20.5,
+          chip: seqVal([
+            ['start', 7],
+            ['end', 10.5],
+          ]),
+          usb: seqVal([
+            ['start', -1.2],
+            ['end', 7],
+          ]),
         },
-        y: addHalf(
-          {
-            total: 17.5,
+        y: {
+          total: 17.5,
+          get totalHalf() {
+            return this.total / 2;
           },
-          ['total'],
-        ),
+          leg: 2,
+          usb: 8.6,
+          get usbHalf() {
+            return this.usb / 2;
+          },
+          chip: 12,
+          get chipHalf() {
+            return this.chip / 2;
+          },
+        },
         z: {
           bottomToTop: seqVal([
+            ['legBottom', -3.5],
+            ['legBase', 3.5],
             ['boardBottom', 10.7],
-            ['boardTop', 1.5],
-            ['chipTop', 1.5],
+            ['boardTop', 1],
+            ['usbTop', 3],
           ]),
+          chip: 1.5,
           get total() {
             return this.bottomToTop.totalValue;
           },
+        },
+        get transformSelf() {
+          return new Transform3D([['translate', 0, 0, S.Grip.Board.z.bottomToTop.valueAt('boardTop')]]);
         },
         get point2ds() {
           return {
@@ -534,6 +634,141 @@ export class Skeleton {
       },
     } as const;
   };
+  static readonly BatteryBoxHolder = {
+    x: {
+      get tailToHead() {
+        const nanameStart = 38;
+        return seqVal([
+          ['batteryBoxStart', 3],
+          ['nanameStart', nanameStart],
+          ['batteryBoxEnd', S.BatteryBoxHolder.BatteryBox.x.total - nanameStart],
+          ['head', 1],
+        ]);
+      },
+      get total() {
+        return this.tailToHead.totalValue;
+      },
+      tailJoint: 8,
+      tailJointAdditional: 1,
+      jointSideNaname: 10,
+      get coverTailToHead() {
+        const radius = S.BatteryBoxHolder.other.radius;
+        return seqVal(
+          [
+            ['nanameStart', flex()],
+            ['twistStart', S.BatteryBoxHolder.z.bottomToTop.totalFromTo('batteryBoxBase', 'top') - radius],
+            ['twistEnd', (radius * Math.PI) / 2],
+            ['coverEnd', 3],
+            ['head', 2.3],
+          ],
+          this.total,
+        );
+      },
+      cableGroove: 2,
+      get collisionAvoidanceHole() {
+        return seqVal([
+          ['holeStart', 7],
+          ['holeEnd', 11],
+        ]);
+      },
+    } as const,
+    get y() {
+      return {
+        total: 30,
+        topWidthHalf: this.BatteryBox.y.total / 2 + this.other.innerMargin + this.other.topThickness,
+        get totalHalf() {
+          return this.total / 2;
+        },
+        get cableGrooveSeq() {
+          return seqVal(
+            [
+              ['grooveStart', 5.4],
+              ['grooveEnd', 3.2],
+              ['bottomGrooveEnd', flex()],
+              ['end', 3.7],
+            ],
+            this.totalHalf,
+          );
+        },
+        collisionAvoidanceHole: 13,
+      } as const;
+    },
+    z: {
+      get bottomToTop() {
+        return seqVal([
+          ['bottomWallEnd', 1.5],
+          ['batteryBoxBottom', S.BatteryBoxHolder.other.innerMargin],
+          ['batteryBoxCutoutStart', S.BatteryBoxHolder.BatteryBox.z.base - S.BatteryBoxHolder.BatteryBox.z.cutout],
+          ['batteryBoxBase', S.BatteryBoxHolder.BatteryBox.z.cutout],
+          ['batteryBoxTop', S.BatteryBoxHolder.BatteryBox.z.cover],
+          ['topWallStart', S.BatteryBoxHolder.other.innerMargin],
+          ['top', S.BatteryBoxHolder.other.topThickness],
+        ]);
+      },
+      get total() {
+        return this.bottomToTop.totalValue;
+      },
+      get headHeight() {
+        // 回転 + 延長した後にボタンパッドの上と大体合うように調整
+        return S.ButtonPad.z.total - 0.5;
+      },
+      tailJointAdditional: 1.8, // グリップにぶつからないように目で調整した
+      cableGroove: 10.2,
+    },
+    other: {
+      topThickness: 1.2,
+      innerMargin: 0.4,
+      get radius() {
+        return S.BatteryBoxHolder.BatteryBox.other.radius + 1.5;
+      },
+      natOffset: 0.2,
+    },
+    get transformSelf() {
+      return new Transform3D([
+        ['translate', -this.x.total, 0, -this.z.total + this.z.headHeight],
+        ['rotate', 'y', degToRad(-11)],
+      ]);
+    },
+    get transformTailNat() {
+      return new Transform3D([
+        ['rotate', 'y', Math.PI / 2],
+        [
+          'translate',
+          this.x.tailToHead.valueAt('batteryBoxStart') - S.Common.Nat.z - this.other.natOffset,
+          0,
+          this.z.bottomToTop.valueAt('bottomWallEnd') + 3,
+        ],
+      ]);
+    },
+    get points() {
+      return {
+        outlineCenter: [
+          [0, 0, 0],
+          [0, 0, this.z.total],
+          [this.x.tailToHead.valueAt('nanameStart'), 0, 0],
+          [this.x.total, 0, 5],
+          [this.x.total, 0, this.z.total],
+        ],
+      } as const;
+    },
+    BatteryBox: {
+      x: {total: 63},
+      y: {
+        total: 25,
+        // カバー後方の飛び出してる部分
+        cutoutHalf: 8.2 / 2,
+      },
+      z: {
+        total: 15,
+        cover: 5,
+        // カバー部分を除いた高さ
+        base: 10,
+        // カバー後方の飛び出してる部分
+        cutout: 3.5,
+      },
+      other: {radius: 2},
+    },
+  } as const;
   static readonly Common = {
     TactileSwitch: {
       z: {
@@ -549,8 +784,12 @@ export class Skeleton {
           return this.seq.valueAt('switchTop');
         },
       },
-    } as const,
-  };
+    },
+    Nat: {
+      z: 2.4,
+      radius: 5.5 / 2,
+    },
+  } as const;
 }
 
 const S = Skeleton;

@@ -411,8 +411,8 @@ export class Skeleton {
     } as const;
     public static get y() {
       return {
-        total: this.End.y.total,
-        totalHalf: this.End.y.totalHalf,
+        total: this.End_Old1.y.total,
+        totalHalf: this.End_Old1.y.totalHalf,
         get ledHole() {
           return seqVal([
             ['start', 4.5],
@@ -429,7 +429,7 @@ export class Skeleton {
     }
     public static get z() {
       return {
-        total: this.End.x.total,
+        total: this.End_Old1.x.total,
         ledHold: 0.5,
       } as const;
     }
@@ -447,11 +447,11 @@ export class Skeleton {
     }
     public static get children() {
       return {
-        End: this.End,
+        End: this.End_Old1,
         Board: this.Board,
       };
     }
-    public static readonly End = {
+    public static readonly End_Old1 = {
       x: {
         topThickness: 1,
         get topToBottom() {
@@ -515,6 +515,70 @@ export class Skeleton {
       },
     } as const;
 
+    public static readonly End = {
+      x: {
+        thickness: 1.2,
+        base: 10,
+      },
+      y: {
+        total: 30,
+        get totalHalf() {
+          return this.total / 2;
+        },
+        usbHoleHalf: 4.85,
+        switchHoleHalf: 3,
+      },
+      z: {
+        ledWallThickness: 1,
+        get bottomToTop() {
+          return seqVal([
+            ['start', -2],
+            ['gripEndBottomStart', 2],
+            ['gripEndBottomEnd', 1],
+            ['boardLegBottom', 0.5],
+            ['boardBottom', S.Grip.Board.z.legBottom],
+            ['boardTop', S.Grip.Board.z.total],
+            ['ledWallBottom', 0.5],
+            ['ledWallTop', this.ledWallThickness],
+          ]);
+        },
+        get total() {
+          return this.bottomToTop.totalValue;
+        },
+        get bottomToTopForHoles() {
+          return seqVal(
+            [
+              ['start', this.bottomToTop.valueAt('start')],
+              ['switchHoleStart', flex()],
+              ['switchHoleEnd', 4],
+              ['usbHoleStart', 7.2],
+              ['usbHoleEnd', 4],
+            ],
+            this.total,
+          );
+        },
+      },
+      other: {
+        radius: 6,
+      },
+      get point2ds() {
+        return {
+          outlineHalf: [
+            [0, 0],
+            [0, this.y.totalHalf - this.other.radius],
+            [this.other.radius, this.y.totalHalf],
+            [this.x.total, this.y.totalHalf],
+            [this.x.total, 0],
+          ],
+        } as const;
+      },
+      get points() {
+        return {
+          bottomHalf: this.point2ds.outlineHalf.map((point) => [...point, 0] as const),
+        };
+      },
+    } as const;
+
     public static readonly Board = {
       x: {
         total: 60,
@@ -539,7 +603,7 @@ export class Skeleton {
       },
       get transformSelf() {
         return new Transform3D([
-          ['translate', S.Grip.x.endThickness, 0, S.Grip.End.x.topToBottom.totalFromTo('boardEnd', 'bottom')],
+          ['translate', S.Grip.x.endThickness, 0, S.Grip.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom')],
         ]);
       },
       get point2ds() {

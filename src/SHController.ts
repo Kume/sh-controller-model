@@ -6,7 +6,6 @@ import {degToRad} from '@jscad/modeling/src/utils';
 import {Cacheable, cacheGetter, halfToFull, legacyCash} from './utls';
 import {Viewable, ViewerItem} from './types';
 import {ButtonPadJoint} from './ButtonPadJoint';
-import {union} from '@jscad/modeling/src/operations/booleans';
 import {TriggerJoint} from './TriggerJoint';
 
 export class SHController extends Cacheable implements Viewable {
@@ -42,6 +41,7 @@ export class SHController extends Cacheable implements Viewable {
       {label: 'batteryHolder', model: () => this.trigger.grip.batteryBoxHolder.full2},
       {label: 'batteryHolderCover', model: () => this.trigger.grip.batteryBoxHolder.coverFull},
       {label: 'buttonPad', model: () => this.buttonPad.full},
+      {label: 'buttonPadCore', model: () => this.buttonPad.core},
       {label: 'buttonPadCover', model: () => this.buttonPad.coverFull},
       // {label: 'buttonPadBoard', model: () => this.buttonPad.board.testBoard},
       // {label: 'triggerBoard', model: () => this.trigger.board.testBoard},

@@ -7,7 +7,7 @@ import {translate, translateZ} from '@jscad/modeling/src/operations/transforms';
 
 export class MainBoard1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Grip.Board;
-  public readonly xiaoBoard = new XiaoBoard();
+  public readonly xiaoBoard = new XiaoBoard1_1();
 
   public get viewerItems(): ViewerItem[] {
     return [{label: 'full', model: () => this.full}];
@@ -44,7 +44,7 @@ export class MainBoard1_1 extends Cacheable implements Viewable {
   }
 }
 
-export class XiaoBoard extends Cacheable implements Viewable {
+export class XiaoBoard1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Grip.Board.XiaoBoard;
 
   public get viewerItems(): ViewerItem[] {

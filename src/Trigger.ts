@@ -573,7 +573,6 @@ export class Trigger extends Cacheable implements Viewable {
     const bottomWidth = 22;
     const buttonFaceBottomEndX =
       this.length - Math.tan(degToRad(this.buttonFaceDegree)) * this.maxZ - Math.sin(degToRad(this.buttonFaceDegree));
-
     return [
       subtract(
         // 凸包でトリガーの丸っこい形を頑張って作る

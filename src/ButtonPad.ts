@@ -47,10 +47,10 @@ export class ButtonPad extends Cacheable implements Viewable {
 
   public readonly buttonHamidashi = 2;
   public readonly boardZ = this.thickness - (this.board.switchesHalf[0].height - this.board.switchesHalf[0].protrusion);
-  public readonly boardDistanceFromStickCenter = 14.5;
+  public readonly boardDistanceFromStickCenter = 14;
 
   public readonly stickXOffset = 15;
-  public readonly stickRotation = degToRad(30);
+  public readonly stickRotation = degToRad(31);
 
   public readonly outerColor = [0.8, 0.8, 0.8] as const;
 
@@ -109,6 +109,7 @@ export class ButtonPad extends Cacheable implements Viewable {
         {label: 'coverHalf', model: () => this.coverHalf},
         {label: 'halfWithCover', model: () => this.halfWithCover},
         {label: 'full', model: () => this.full},
+        {label: 'core', model: () => this.core},
         {label: 'coverFull', model: () => this.coverFull},
         {label: 'boardAndStick', model: () => this.boardAndStick},
         {label: 'fullWithBoard', model: () => this.fullWithBoard},
@@ -187,6 +188,10 @@ export class ButtonPad extends Cacheable implements Viewable {
     ];
   }
 
+  public get core(): Geom3[] {
+    return [intersect(this.full, cuboid({center: [this.length / 2 - 10, 0, 9], size: [this.length - 10, 24, 10]}))];
+  }
+
   public get fullWithCover(): Geom3[] {
     return [...this.full, ...this.coverFull];
   }
@@ -260,8 +265,8 @@ export class ButtonPad extends Cacheable implements Viewable {
         ),
       ),
 
-      // ...this.fingerSubtractionPoints1(1),
-      // ...this.fingerSubtractionPoints2(1),
+      ...this.fingerSubtractionPoints1(1),
+      ...this.fingerSubtractionPoints2(1),
     ];
   }
 
@@ -434,7 +439,7 @@ export class ButtonPad extends Cacheable implements Viewable {
   };
 
   private transformStick = (g: Geom3): Geom3 => {
-    return translate([this.stickXOffset, 0, this.boardBottomZ + 0.5], rotateZ(this.stickRotation, g));
+    return translate([this.stickXOffset, 0, this.boardBottomZ - 0.5], rotateZ(this.stickRotation, g));
   };
 
   private transformNatHolder = (g: Geom3): Geom3 => {

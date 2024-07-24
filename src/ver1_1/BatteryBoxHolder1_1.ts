@@ -1,4 +1,4 @@
-import {Cacheable, cacheGetter, Centered, halfToFull, hexagon} from '../utls';
+import {Cacheable, cacheGetter, Centered, chamfer, halfToFull, hexagon} from '../utls';
 import {Viewable, ViewerItem} from '../types';
 import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
 import {intersect, subtract, union} from '@jscad/modeling/src/operations/booleans';
@@ -25,12 +25,11 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
   public get viewerItems(): ViewerItem[] {
     return [
       {label: 'outlineHalf', model: () => this.outlineHalf},
-      {label: 'looseOutlineHalf', model: () => this.looseOutlineHalf},
+      {label: 'looseOutlineHalf', model: () => this.looseOutlineHalfBase},
       {label: 'half', model: () => this.half},
       {label: 'full', model: () => this.full},
       {label: 'coverHalf', model: () => this.coverHalf},
       {label: 'coverOutlineHalf', model: () => this.coverOutlineHalf},
-      {label: 'gripSideJointPartHalf', model: () => this.gripSideJointPartHalf},
     ];
   }
 
@@ -40,11 +39,62 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get full(): Geom3[] {
-    return [subtract(union(halfToFull(this.half)), this.innerFull)];
+    return [
+      subtract(
+        union(
+          halfToFull(this.half),
+
+          // ケーブルフック
+          translateY(
+            this.sk.y.tailToHeadForCableHook.valueAt('hookStart'),
+            this.geom3FromSidePlane(
+              polygon({
+                points: [
+                  [this.sk.x.tailToHeadForCableHook.valueAt('hookStart'), 0],
+                  [this.sk.x.tailToHeadForCableHook.valueAt('hookNanameEnd'), -this.sk.z.cableHook],
+                  [this.sk.x.tailToHeadForCableHook.valueAt('hookEnd'), -this.sk.z.cableHook],
+                  [this.sk.x.tailToHeadForCableHook.valueAt('hookEnd'), -this.sk.z.cableHook / 2],
+                  [this.sk.x.tailToHeadForCableHook.valueAt('hookCutoffStart'), -this.sk.z.cableHook / 2],
+                  [this.sk.x.tailToHeadForCableHook.valueAt('hookCutoffStart'), 0],
+                ],
+              }),
+              this.sk.y.tailToHeadForCableHook.totalFromTo('hookStart', 'hookEnd'),
+            ),
+          ),
+        ),
+        this.innerFull,
+        // 面取り
+        rotateY(
+          Math.PI / 2,
+          union(
+            chamfer(
+              rectangle({
+                size: [this.sk.z.bottomToTop.valueAt('batteryBoxBase'), this.sk.y.total],
+                center: [-this.sk.z.bottomToTop.valueAt('batteryBoxBase') / 2, 0],
+              }),
+              1,
+            ),
+          ),
+        ),
+        // 対で印刷するときに面するケーブルフックが来るところのスペースを開けておく
+        translate(
+          [
+            this.sk.x.tailToHeadForCableHook.valueAt('hookStart') - 0.5,
+            -this.sk.y.tailToHeadForCableHook.valueAt('hookEnd') - 0.5,
+            0,
+          ],
+          Centered.cuboid([
+            this.sk.x.tailToHeadForCableHook.totalFromTo('hookStart', 'hookEnd') + 1,
+            this.sk.y.tailToHeadForCableHook.totalFromTo('hookStart', 'hookEnd') + 1,
+            0.5,
+          ]),
+        ),
+      ),
+    ];
   }
 
   /**
-   * fullに対して更に削る部分
+   * fullに対して更に削る部分 = 中央部分 & 左右非対称部分
    */
   @cacheGetter
   public get innerFull(): Geom3[] {
@@ -62,20 +112,26 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
         {
           height: this.sk.z.bottomToTop.valueAt('bottomWallEnd'),
         },
-        polygon({
-          points: [
-            [innereXEnd, yGrooveStart],
-            [bottomGrooveLength, yGrooveStart + grooveHeadYOffset],
-            [bottomGrooveLength + 5, yGrooveStart + grooveHeadYOffset],
-            [bottomGrooveLength + 5, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
-            [bottomGrooveLength, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
-            [innereXEnd, yGrooveStart + cableGrooveWidth],
-          ],
-        }),
+        union(
+          polygon({
+            points: [
+              [innereXEnd, yGrooveStart],
+              [bottomGrooveLength, yGrooveStart + grooveHeadYOffset],
+              [bottomGrooveLength + 5, yGrooveStart + grooveHeadYOffset],
+              [bottomGrooveLength + 5, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
+              [bottomGrooveLength, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
+              [innereXEnd, yGrooveStart + cableGrooveWidth],
+            ],
+          }),
+          translate(
+            [this.sk.x.collisionAvoidanceHole.valueAt('holeStart') + 1.9999, this.sk.y.collisionAvoidanceHole / 2],
+            Centered.rectangle([this.sk.x.collisionAvoidanceHole.totalFromTo('holeStart', 'holeEnd') - 2, 6]),
+          ),
+        ),
       ),
       this.sk.transformTailNat.applyGeom(
         extrudeLinear(
-          {height: Skeleton.Common.Nat.z + this.sk.other.natOffset},
+          {height: Skeleton.Common.Nat.z + this.sk.other.natOffset + 10},
           hexagon(Skeleton.Common.Nat.radius + this.sk.other.natOffset),
         ),
       ),
@@ -85,7 +141,7 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get half(): Geom3[] {
-    return [subtract(this.outlineHalf, this.innerHalf)];
+    return [subtract(this.outlineHalf, this.innerHalf), ...this.headJointHalf];
   }
 
   @cacheGetter
@@ -108,6 +164,7 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
         this.sk.x.tailToHead.valueAt('nanameStart'),
         Centered.cuboid([this.sk.x.total, widthHalf, this.sk.z.bottomToTop.valueAt('bottomWallEnd')]),
       ),
+      // チップやボタンサポートとの干渉を避けるための穴
       (() => {
         const length = this.sk.x.collisionAvoidanceHole.totalFromTo('holeStart', 'holeEnd');
         return cuboid({
@@ -119,43 +176,64 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
   }
 
   @cacheGetter
+  public get headJointHalf(): Geom3[] {
+    const collisionOffset = 0.3;
+    return [
+      translate(
+        [this.sk.x.total, this.sk.y.totalHalf - this.sk.y.headJoint, this.sk.z.total - this.sk.z.headHeight],
+        union(
+          // 出っ張り部分
+          translate(
+            [-collisionOffset, 0, -this.sk.z.headJoint.height - this.sk.z.headJoint.offset],
+            Centered.cuboid([
+              this.sk.x.headJoint.headLength + collisionOffset,
+              this.sk.y.headJoint,
+              this.sk.z.headJoint.height,
+            ]),
+          ),
+          // ベース部分
+          this.geom3FromSidePlane(
+            polygon({
+              points: [
+                [-collisionOffset, -this.sk.z.headJoint.height - this.sk.z.headJoint.offset],
+                [-collisionOffset, 1],
+                [-8, 0],
+                [-collisionOffset - 1.5, -this.sk.z.headJoint.height - this.sk.z.headJoint.offset],
+              ],
+            }),
+            this.sk.y.headJoint,
+          ),
+        ),
+      ),
+    ];
+  }
+
+  @cacheGetter
   public get outlineHalf(): Geom3[] {
-    const additionalEndZ =
-      this.sk.z.bottomToTop.valueAt('batteryBoxBase') - this.sk.BatteryBox.z.cutout + this.sk.z.tailJointAdditional;
     // グリップとの接続のための付け足し
     const additionalJoint = subtract(
       union(
         // グリップ方向
-        // this.geom3FromSidePlane(
-        //   polygon({
-        //     points: [
-        //       [0, 0],
-        //       [0, -this.sk.z.tailJointAdditional],
-        //       [this.sk.x.tailJoint, 0],
-        //     ],
-        //   }),
-        //   this.sk.BatteryBox.y.total / 2,
-        // ),
-        // ケツ方向
-        this.geom3FromBottomPlane(
-          // translateX(
-          //   -this.sk.z.tailJointAdditional,
-          //   Centered.rectangle([additionalEndZ, this.sk.BatteryBox.y.total / 2]),
-          // ),
-          Centered.rectangle([additionalEndZ, this.sk.BatteryBox.y.total / 2]),
-          this.sk.x.tailJointAdditional,
-          -this.sk.x.tailJointAdditional,
+        this.geom3FromSidePlane(
+          polygon({
+            points: [
+              [this.sk.x.tailJointAdditionalStart, 0],
+              [this.sk.x.tailJointAdditionalStart, -this.sk.z.tailJointAdditional],
+              [this.sk.x.tailJoint, 0],
+            ],
+          }),
+          this.sk.y.tailJointAdditionalHalf,
         ),
       ),
     );
     const base = subtract(
       union(this.geom3FromBottomPlane(this.endPlaneHalf, this.sk.x.total + 99)),
       this.outlineHalfSubtractuion,
-      // ButtonPadの側面と角度を合わせるための切り取り (ここで切り取る前提で↑で+99してる)
+      // 先端部分をButtonPadの側面と角度を合わせるための切り取り (ここで切り取る前提で↑で+99してる)
       this.sk.transformSelf.reversed().applyGeom(
         cuboid({
           size: [99, 99, 99],
-          center: [99 / 2 - 0.5, 99 / 2, 0],
+          center: [99 / 2 - 0.3, 99 / 2, 0],
         }),
       ),
     );
@@ -182,59 +260,41 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
           intersect(base, union(this.coverSubtractionHalf)),
           additionalJoint,
         ),
-        this.subtructionForJointHalf,
+        // this.subtructionForJointHalf,
       ),
     ];
   }
 
   @cacheGetter
-  public get looseOutlineHalf(): Geom3[] {
-    const endPlane = Centered.rectangle([this.sk.z.total, this.sk.y.totalHalf + 0.0001]);
-    return [
-      expand(
-        {delta: 0.4},
-        subtract(
-          union(
-            this.geom3FromBottomPlane(endPlane, this.sk.x.total),
-            this.geom3FromBottomPlane(
-              Centered.rectangle([
-                this.sk.z.bottomToTop.valueAt('batteryBoxCutoutStart'),
-                this.sk.BatteryBox.y.total / 2,
-              ]),
-              this.sk.x.tailJointAdditional,
-              -this.sk.x.tailJointAdditional,
-            ),
-          ),
-          this.outlineHalfSubtractuion,
-          this.subtructionForJointHalf,
-        ),
-      ),
-    ];
-  }
-
-  public get gripSideJointPartHalf(): Geom3[] {
-    const thickness = 2.5;
+  public get looseOutlineHalfBase(): Geom3[] {
+    const endPlane = Centered.rectangle([this.sk.z.total, this.sk.y.totalHalf + 0.000001]);
     return [
       subtract(
-        translate(
-          [-this.sk.x.tailJointAdditional - thickness, 0, 0],
-          Centered.cuboid([
-            this.sk.x.tailJointAdditional + thickness + this.sk.x.jointSideNaname,
-            this.sk.y.totalHalf,
-            this.sk.z.bottomToTop.valueAt('batteryBoxCutoutStart') - 0.5,
-          ]),
+        union(
+          // // グリップ方向へ付け足し
+          // this.geom3FromSidePlane(
+          //   polygon({
+          //     points: [
+          //       [0, 0],
+          //       [0, -this.sk.z.tailJointAdditional],
+          //       [this.sk.x.tailJoint, 0],
+          //     ],
+          //   }),
+          //   this.sk.y.totalHalf + 0.000001,
+          // ),
+          this.geom3FromBottomPlane(endPlane, this.sk.x.total),
         ),
-        this.looseOutlineHalf,
-        this.sk.transformTailNat.applyGeom(cuboid({size: [3.4, 3.4, 99]})),
-        // this.sk.transformTailNat.applyGeom(cuboid({size: [3.4, 10, 5]})),
+
+        this.outlineHalfSubtractuion,
       ),
+      ...this.headJointHalf,
     ];
   }
 
   private get subtructionForJointHalf(): Geom3[] {
     return [
       extrudeLinear(
-        {height: this.sk.z.bottomToTop.valueAt('batteryBoxCutoutStart')},
+        {height: 1},
         polygon({
           points: [
             [this.sk.x.tailToHead.valueAt('batteryBoxStart'), this.sk.BatteryBox.y.total / 2],
@@ -253,31 +313,15 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get outlineHalfSubtractuion(): Geom3[] {
-    const collisionOffset = 0.4;
     // グリップと領域を分け合うためにナナメに削る部分
     const headSidePlane = polygon({
       points: [
         [this.sk.x.tailToHead.valueAt('nanameStart'), 0],
         [this.sk.x.total, 0],
-        [this.sk.x.total, this.sk.z.total - this.sk.z.headHeight - collisionOffset],
+        [this.sk.x.total, this.sk.z.total - this.sk.z.headHeight],
       ],
     });
-    // グリップに末尾のジョイント部分を作るために削る部分
-    const tailSidePlane = polygon({
-      points: [
-        [0, 0],
-        [this.sk.x.jointSideNaname, 0],
-        [
-          this.sk.x.tailToHead.valueAt('batteryBoxStart'),
-          this.sk.z.bottomToTop.valueAt('batteryBoxBase') - this.sk.BatteryBox.z.cutout,
-        ],
-        [0, this.sk.z.bottomToTop.valueAt('batteryBoxBase') - this.sk.BatteryBox.z.cutout],
-      ],
-    });
-    return [
-      this.geom3FromSidePlane(headSidePlane, 999),
-      this.geom3FromSidePlane(tailSidePlane, 999, this.sk.BatteryBox.y.total / 2),
-    ];
+    return [this.geom3FromSidePlane(headSidePlane, 999)];
   }
 
   private geom3FromBottomPlane(geom: Geom2, height: number, offset?: number): Geom3 {
@@ -331,6 +375,9 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
     ];
   }
 
+  /**
+   * カバー先端のナナメ形状を作る
+   */
   @cacheGetter
   public get coverSubtractionHalf(): Geom3[] {
     const rectLength = this.sk.other.radius * 2;

@@ -6,6 +6,7 @@ import fs from 'fs';
 import {Geometry} from '@jscad/modeling/src/geometries/types';
 import * as path from 'path';
 import {SHController} from './SHController';
+import {SHController1_1} from './ver1_1/SHController1_1';
 
 function saveStl(fileName: string, geom: Geometry | Geometry[]) {
   const data = stlSerializer.serialize({binary: false}, geom);
@@ -23,7 +24,8 @@ function saveObj(fileName: string, geom: Geometry | Geometry[]) {
   console.log(`output ${fileName}`);
 }
 
-const main = new SHController();
+// const main = new SHController();
+const main = new SHController1_1();
 main.printItems.forEach((i) => saveStl(`${i.label}.stl`, i.model()));
 
 if (process.env.npm_lifecycle_script?.startsWith('ts-node-dev')) {

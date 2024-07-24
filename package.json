@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "ts-node-dev src/main.ts",
-    "build": "ts-node src/main.ts",
+    "build": "tsx src/main.ts",
     "build:sample": "ts-node src/samples/writeSample.ts",
     "build:web": "tsc && vite build",
     "web": "vite"
@@ -23,6 +23,7 @@
     "eslint-plugin-react-hooks": "^4.6.0",
     "prettier": "^2.8.4",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.16.2",
     "typescript": "^5.0.2",
     "vite": "^4.2.1"
   },

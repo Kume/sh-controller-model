@@ -1,22 +1,24 @@
 import geometries from '@jscad/modeling/src/geometries';
-import {Geom3} from '@jscad/modeling/src/geometries/types';
-import {subtract} from '@jscad/modeling/src/operations/booleans';
+import {Geom2, Geom3} from '@jscad/modeling/src/geometries/types';
+import {intersect, subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {hull} from '@jscad/modeling/src/operations/hulls';
-import {rotateY, translate, translateZ} from '@jscad/modeling/src/operations/transforms';
-import {cuboid, sphere} from '@jscad/modeling/src/primitives';
+import {rotateY, translate, translateX, translateY, translateZ} from '@jscad/modeling/src/operations/transforms';
+import {circle, cuboid, sphere} from '@jscad/modeling/src/primitives';
 import {degToRad} from '@jscad/modeling/src/utils';
 import {Viewable, ViewerItem} from '../types';
-import {Cacheable, cacheGetter, Centered, halfToFull, vec2ArrayToWritable} from '../utls';
+import {addColor, Cacheable, cacheGetter, Centered, halfToFull, hexagon, vec2ArrayToWritable} from '../utls';
 import {BatteryBoxHolder1_1} from './BatteryBoxHolder1_1';
 import {Grip1_1} from './Grip1_1';
 import {Skeleton} from './Skeleton';
+import {TriggerBoard1_1} from './TriggerBoard1_1';
 
 export class Trigger1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Trigger;
   public readonly grip = new Grip1_1();
   public readonly batteryBoxHolder = new BatteryBoxHolder1_1();
-  public readonly buttonFace = new ButtonFace();
+  public readonly buttonFace = new ButtonFace1_1();
+  public readonly joint = new Joint1_1();
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -24,6 +26,17 @@ export class Trigger1_1 extends Cacheable implements Viewable {
       {label: 'outlineHalf', model: () => this.outlineHalf},
       {label: 'innerHalf', model: () => this.innerHalf},
       {label: 'half', model: () => this.half},
+      {label: 'frontHalf', model: () => this.frontHalf},
+      {
+        label: 'halfWithJointAndBoard',
+        model: () => [
+          ...this.half,
+          ...this.joint.sk.transformSelf.applyGeoms(this.joint.half),
+          ...this.buttonFace.sk.transformSelf.applyGeoms(
+            this.buttonFace.board.sk.transformSelf.applyGeoms(this.buttonFace.board.full),
+          ),
+        ],
+      },
     ];
   }
 
@@ -43,7 +56,37 @@ export class Trigger1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get half(): Geom3[] {
-    return [subtract(this.outlineHalf, this.innerHalf)];
+    return [subtract(this.outlineHalf, this.innerHalf), ...this.frontBackHalf];
+  }
+
+  @cacheGetter
+  public get frontHalf(): Geom3[] {
+    return [
+      subtract(
+        union(
+          intersect(this.outlineHalf, translateX(22, Centered.cuboid([99, 99, 99]))),
+          intersect(this.outlineHalf, translateY(17, Centered.cuboid([99, 99, 99]))),
+        ),
+        this.innerHalf,
+      ),
+      ...this.frontBackHalf,
+    ];
+  }
+
+  private get frontBackHalf(): Geom3[] {
+    return [
+      addColor(
+        [0.4, 0.4, 0.4],
+        subtract(
+          union(
+            Centered.cuboid([22, 15, 12]),
+            rotateY(this.sk.ButtonFace.other.rotateRad, Centered.cuboid([23, 15, 11])),
+          ),
+          Centered.cuboid([30, 13, 10]),
+          translateX(-99 + 8, Centered.cuboid([99, 99, 99])),
+        ),
+      ),
+    ];
   }
 
   @cacheGetter
@@ -75,8 +118,9 @@ export class Trigger1_1 extends Cacheable implements Viewable {
   }
 }
 
-class ButtonFace extends Cacheable implements Viewable {
+class ButtonFace1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Trigger.ButtonFace;
+  public readonly board = new TriggerBoard1_1();
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -125,18 +169,67 @@ class ButtonFace extends Cacheable implements Viewable {
   }
 }
 
-class Joint extends Cacheable implements Viewable {
+class Joint1_1 extends Cacheable implements Viewable {
+  public readonly sk = Skeleton.Trigger.Joint;
+
   public get viewerItems(): ViewerItem[] {
-    return [];
+    return [{label: 'half', model: () => this.half}];
   }
 
   public get displayName() {
     return this.constructor.name;
   }
 
-  // public get outlineHalf() {
+  public get half(): Geom3[] {
+    return [addColor([0.6, 0.2, 0.2], subtract(union(this.outlineHalf), this.subtraction))];
+  }
 
-  // }
+  public get outlineHalf(): Geom3[] {
+    return [
+      union(extrudeLinear({height: this.sk.z.thickness}, union(this.layer1))),
+
+      translateZ(
+        this.sk.z.thickness,
+        extrudeLinear(
+          {height: this.sk.z.screwPoll},
+          union(
+            circle({radius: this.sk.other.screwPollRadius, center: [...this.sk.point2ds.screw]}),
+            circle({radius: this.sk.other.screwPollRadius, center: [...this.sk.point2ds.counterScrew]}),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  public get subtraction(): Geom3[] {
+    return [
+      extrudeLinear(
+        {height: Skeleton.Common.Nat.z + 0.2},
+        translate([0, 0], union(translate([...this.sk.point2ds.screw], hexagon(Skeleton.Common.Nat.radius + 0.2)))),
+      ),
+      cuboid({
+        size: [3.4, 3.4, 99],
+        center: [...this.sk.point2ds.screw, 0],
+      }),
+
+      extrudeLinear(
+        {height: Skeleton.Common.Nat.z + 0.2},
+        translate([...this.sk.point2ds.counterScrew], hexagon(Skeleton.Common.Nat.radius + 0.2)),
+      ),
+      cuboid({
+        size: [3.4, 3.4, 99],
+        center: [...this.sk.point2ds.counterScrew, 0],
+      }),
+    ];
+  }
+
+  public get layer1(): Geom2 {
+    return union(
+      Centered.rectangle([this.sk.x.total, this.sk.y.headHalf]),
+      Centered.rectangle([this.sk.point2ds.counterScrew[0], this.sk.y.middleHalf]),
+      translate([...this.sk.point2ds.counterScrew], hexagon(Skeleton.Common.Nat.radius + 0.2 + 1)),
+    );
+  }
 
   // @cacheGetter
   // public get screwPole(): Geom3 {

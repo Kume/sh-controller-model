@@ -18,6 +18,10 @@ export type MirrorTransform3DItem = readonly [type: 'mirror', axis: 'x' | 'y' | 
 export type Transform3dItem = TranslateTransform3DItem | RotateTransform3DItem | MirrorTransform3DItem;
 
 export class Transform3D<Items extends readonly Transform3dItem[] = readonly Transform3dItem[]> {
+  public static join(...transforms: readonly Transform3D[]): Transform3D {
+    return new Transform3D(transforms.flatMap((transform) => transform.items));
+  }
+
   public constructor(public readonly items: Items) {}
 
   public applyVec(point: Vec3D): Vec3D {

@@ -234,6 +234,7 @@ export class Skeleton {
     public static get children() {
       return {
         ButtonFace: this.ButtonFace,
+        Joint: this.Joint,
       };
     }
     static readonly ButtonFace = class ButtonFace {
@@ -314,11 +315,13 @@ export class Skeleton {
       }
       public static readonly Board = class TriggerBoard {
         public static readonly x = {
-          topToBottom: seqVal([
-            ['topSwitch', 7],
-            ['bottomSwitch', 17],
-            ['bottom', 5],
-          ]),
+          get topToBottom() {
+            return seqVal([
+              ['topSwitch', 7],
+              ['bottomSwitch', 17],
+              ['bottom', 5],
+            ]);
+          },
         } as const;
         public static readonly y = {
           totalHalf: 11,
@@ -381,13 +384,55 @@ export class Skeleton {
       };
     };
     public static readonly Joint = {
-      x: {},
-      y: {},
+      x: {
+        get total() {
+          return S.Trigger.Joint.point2ds.counterScrew[0] + S.Common.Nat.radius + S.Trigger.Joint.other.natOffset + 1;
+        },
+      },
+      y: {
+        headHalf: 12,
+        middleHalf: 15,
+      },
       z: {
         screwPoll: 4,
+        thickness: 3.5,
+        layer1Thickenss: 2,
       },
       other: {
-        screwPollRadius: 5,
+        screwPollRadius: 4,
+        natOffset: 0.2,
+      },
+      get transformSelf() {
+        return new Transform3D([
+          ['translate', 0, 0, -this.z.thickness],
+          ['mirror', 'z'],
+        ]);
+      },
+      get point2ds() {
+        const screw = S.ButtonPad.transform2d.applyVec(S.ButtonPad.point2ds.screw);
+        const counterScrew = S.ButtonPad.transform2d.applyVec(S.ButtonPad.point2ds.counterScrew);
+        return {
+          screw,
+          counterScrew: [counterScrew[0], 10],
+        } as const;
+      },
+      get points() {
+        return {
+          screw: [...this.point2ds.screw, 0],
+          counterScrew: [...this.point2ds.counterScrew, 0],
+          counterScrew2: [this.point2ds.counterScrew[0], -this.point2ds.counterScrew[1], 0],
+          get screws() {
+            return [this.screw, this.counterScrew, this.counterScrew2];
+          },
+        } as const;
+      },
+      get pointsViewMeta() {
+        return {
+          screws: {
+            color: [1, 0.4, 0.4],
+            defaultVisible: true,
+          },
+        } as const;
       },
     } as const;
   };
@@ -396,6 +441,8 @@ export class Skeleton {
       endThickness: 1.2,
       topWall: 15,
       total: 75,
+      endJointTotal: 9.5,
+      endJointThickness: 1.5,
       get ledHole() {
         return seqVal([
           ['start', 3.5],
@@ -413,6 +460,9 @@ export class Skeleton {
       return {
         total: this.End_Old1.y.total,
         totalHalf: this.End_Old1.y.totalHalf,
+        get endWidthHalf() {
+          return this.totalHalf - S.Grip.End.y.sideThickness;
+        },
         get ledHole() {
           return seqVal([
             ['start', 4.5],
@@ -431,12 +481,14 @@ export class Skeleton {
       return {
         total: this.End_Old1.x.total,
         ledHold: 0.5,
+        endJoint: 1.6,
       } as const;
     }
     public static get other() {
       return {
         ledHoleSize: 3,
         resetSwitchHoleSize: 2.6,
+        radius: 6,
       } as const;
     }
     public static get transformSelf() {
@@ -518,7 +570,7 @@ export class Skeleton {
     public static readonly End = {
       x: {
         thickness: 1.2,
-        base: 10,
+        base: 8,
       },
       y: {
         total: 30,
@@ -527,13 +579,15 @@ export class Skeleton {
         },
         usbHoleHalf: 4.85,
         switchHoleHalf: 3,
+        sideThickness: 1,
       },
       z: {
         ledWallThickness: 1,
+        bottomThickness: 1.5,
         get bottomToTop() {
           return seqVal([
-            ['start', -2],
-            ['gripEndBottomStart', 2],
+            ['start', -this.bottomThickness],
+            ['gripEndBottomStart', this.bottomThickness],
             ['gripEndBottomEnd', 1],
             ['boardLegBottom', 0.5],
             ['boardBottom', S.Grip.Board.z.legBottom],
@@ -543,7 +597,7 @@ export class Skeleton {
           ]);
         },
         get total() {
-          return this.bottomToTop.totalValue;
+          return this.bottomToTop.totalFromTo('start', 'ledWallTop');
         },
         get bottomToTopForHoles() {
           return seqVal(
@@ -553,29 +607,14 @@ export class Skeleton {
               ['switchHoleEnd', 4],
               ['usbHoleStart', 7.2],
               ['usbHoleEnd', 4],
+              ['ledWallTop', this.ledWallThickness],
             ],
-            this.total,
+            this.bottomToTop.valueAt('ledWallTop'),
           );
         },
       },
       other: {
         radius: 6,
-      },
-      get point2ds() {
-        return {
-          outlineHalf: [
-            [0, 0],
-            [0, this.y.totalHalf - this.other.radius],
-            [this.other.radius, this.y.totalHalf],
-            [this.x.total, this.y.totalHalf],
-            [this.x.total, 0],
-          ],
-        } as const;
-      },
-      get points() {
-        return {
-          bottomHalf: this.point2ds.outlineHalf.map((point) => [...point, 0] as const),
-        };
       },
     } as const;
 
@@ -632,14 +671,18 @@ export class Skeleton {
       XiaoBoard: {
         x: {
           total: 20.5,
-          chip: seqVal([
-            ['start', 7],
-            ['end', 10.5],
-          ]),
-          usb: seqVal([
-            ['start', -1.2],
-            ['end', 7],
-          ]),
+          get chip() {
+            return seqVal([
+              ['start', 7],
+              ['end', 10.5],
+            ]);
+          },
+          get usb() {
+            return seqVal([
+              ['start', -1.2],
+              ['end', 7],
+            ]);
+          },
         },
         y: {
           total: 17.5,
@@ -657,13 +700,15 @@ export class Skeleton {
           },
         },
         z: {
-          bottomToTop: seqVal([
-            ['legBottom', -3.5],
-            ['legBase', 3.5],
-            ['boardBottom', 10.7],
-            ['boardTop', 1],
-            ['usbTop', 3],
-          ]),
+          get bottomToTop() {
+            return seqVal([
+              ['legBottom', -3.5],
+              ['legBase', 3.5],
+              ['boardBottom', 10.7],
+              ['boardTop', 1],
+              ['usbTop', 3],
+            ]);
+          },
           chip: 1.5,
           get total() {
             return this.bottomToTop.totalValue;
@@ -703,7 +748,7 @@ export class Skeleton {
       get tailToHead() {
         const nanameStart = 38;
         return seqVal([
-          ['batteryBoxStart', 3],
+          ['batteryBoxStart', 5],
           ['nanameStart', nanameStart],
           ['batteryBoxEnd', S.BatteryBoxHolder.BatteryBox.x.total - nanameStart],
           ['head', 1],
@@ -712,8 +757,9 @@ export class Skeleton {
       get total() {
         return this.tailToHead.totalValue;
       },
-      tailJoint: 8,
+      tailJoint: 9,
       tailJointAdditional: 1,
+      tailJointAdditionalStart: 3,
       jointSideNaname: 10,
       get coverTailToHead() {
         const radius = S.BatteryBoxHolder.other.radius;
@@ -728,12 +774,27 @@ export class Skeleton {
           this.total,
         );
       },
-      cableGroove: 2,
+      cableGroove: 1.7,
       get collisionAvoidanceHole() {
         return seqVal([
-          ['holeStart', 7],
+          ['holeStart', 9],
           ['holeEnd', 11],
         ]);
+      },
+      get tailToHeadForCableHook() {
+        return seqVal(
+          [
+            ['hookStart', this.collisionAvoidanceHole.valueAt('holeEnd') + 3],
+            ['hookNanameEnd', 4],
+            ['hookCutoffStart', flex()],
+            ['hookEnd', 3],
+            ['nanameStart', 4],
+          ],
+          this.tailToHead.valueAt('nanameStart'),
+        );
+      },
+      headJoint: {
+        headLength: 1.5,
       },
     } as const,
     get y() {
@@ -747,14 +808,33 @@ export class Skeleton {
           return seqVal(
             [
               ['grooveStart', 5.4],
-              ['grooveEnd', 3.2],
+              ['grooveEnd', 4],
               ['bottomGrooveEnd', flex()],
-              ['end', 3.7],
+              ['end', 2.7],
             ],
             this.totalHalf,
           );
         },
         collisionAvoidanceHole: 13,
+
+        get tailToHeadForCableHook() {
+          return seqVal(
+            [
+              ['hookStart', flex()],
+              ['hookEnd', 2],
+              ['sideWallStart', 3],
+              [
+                'sideWallEnd',
+                this.totalHalf -
+                  Skeleton.BatteryBoxHolder.BatteryBox.y.total / 2 -
+                  Skeleton.BatteryBoxHolder.other.innerMargin,
+              ],
+            ],
+            this.totalHalf,
+          );
+        },
+        headJoint: 2,
+        tailJointAdditionalHalf: 7,
       } as const;
     },
     z: {
@@ -776,8 +856,13 @@ export class Skeleton {
         // 回転 + 延長した後にボタンパッドの上と大体合うように調整
         return S.ButtonPad.z.total - 0.5;
       },
-      tailJointAdditional: 1.8, // グリップにぶつからないように目で調整した
+      tailJointAdditional: 1.6, // グリップにぶつからないように目で調整した
       cableGroove: 10.2,
+      cableHook: 3,
+      headJoint: {
+        height: 2,
+        offset: 1,
+      },
     },
     other: {
       topThickness: 1.2,
@@ -795,12 +880,12 @@ export class Skeleton {
     },
     get transformTailNat() {
       return new Transform3D([
-        ['rotate', 'y', Math.PI / 2],
+        ['rotate', 'y', Math.PI / 2 - degToRad(13)],
         [
           'translate',
-          this.x.tailToHead.valueAt('batteryBoxStart') - S.Common.Nat.z - this.other.natOffset,
+          this.x.tailToHead.valueAt('batteryBoxStart') - S.Common.Nat.z - this.other.natOffset - 0.7,
           0,
-          this.z.bottomToTop.valueAt('bottomWallEnd') + 3,
+          this.z.bottomToTop.valueAt('bottomWallEnd') + 3 - 0.5,
         ],
       ]);
     },
@@ -836,10 +921,12 @@ export class Skeleton {
   static readonly Common = {
     TactileSwitch: {
       z: {
-        seq: seqVal([
-          ['baseTop', 3.5],
-          ['switchTop', 6],
-        ]),
+        get seq() {
+          return seqVal([
+            ['baseTop', 3.5],
+            ['switchTop', 6],
+          ]);
+        },
         /** スイッチの外装に埋め込まれている部分の高さ */
         get subterraneanHeight() {
           return this.seq.totalValue - 2;

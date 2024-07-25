@@ -172,6 +172,8 @@ export class Skeleton {
   static readonly Trigger = class Trigger {
     public static readonly x = {
       total: 50,
+      /** トリガー部分を印刷用に分割する際、グリップ側をどこまで伸ばすか */
+      gripSide: 20,
     } as const;
     public static readonly y = {
       totalHalf: 25,
@@ -179,6 +181,12 @@ export class Skeleton {
         return this.totalHalf * 2;
       },
       bottomWidthHalf: 11,
+      get frontGripJoint() {
+        return seqVal([
+          ['gripStart', 15],
+          ['gripEnd', 2],
+        ]);
+      },
     } as const;
     public static readonly z = {
       total: 32.5,
@@ -190,6 +198,13 @@ export class Skeleton {
     } as const;
     public static get transformSelf() {
       return new Transform3D([['mirror', 'z']]);
+    }
+    public static get transformNatHolder() {
+      return new Transform3D([
+        ['rotate', 'z', Math.PI],
+        ['translate', 18, 0, 2],
+        ['rotate', 'y', S.Trigger.ButtonFace.other.rotateRad],
+      ]);
     }
     public static get points() {
       return {

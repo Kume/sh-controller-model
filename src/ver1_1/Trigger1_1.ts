@@ -12,6 +12,7 @@ import {BatteryBoxHolder1_1} from './BatteryBoxHolder1_1';
 import {Grip1_1} from './Grip1_1';
 import {Skeleton} from './Skeleton';
 import {TriggerBoard1_1} from './TriggerBoard1_1';
+import {NatHolder} from '../NatHolder';
 
 export class Trigger1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Trigger;
@@ -19,6 +20,11 @@ export class Trigger1_1 extends Cacheable implements Viewable {
   public readonly batteryBoxHolder = new BatteryBoxHolder1_1();
   public readonly buttonFace = new ButtonFace1_1();
   public readonly joint = new Joint1_1();
+  private readonly natHolder = new NatHolder({
+    totalHeight: 7,
+    screwHoleType: 'octagon',
+    topThickness: 2,
+  });
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -64,8 +70,11 @@ export class Trigger1_1 extends Cacheable implements Viewable {
     return [
       subtract(
         union(
-          intersect(this.outlineHalf, translateX(22, Centered.cuboid([99, 99, 99]))),
-          intersect(this.outlineHalf, translateY(17, Centered.cuboid([99, 99, 99]))),
+          intersect(this.outlineHalf, translateX(this.sk.x.gripSide, Centered.cuboid([99, 99, 99]))),
+          intersect(
+            this.outlineHalf,
+            translateY(this.sk.y.frontGripJoint.valueAt('gripStart'), Centered.cuboid([99, 99, 99])),
+          ),
         ),
         this.innerHalf,
       ),
@@ -76,14 +85,17 @@ export class Trigger1_1 extends Cacheable implements Viewable {
   private get frontBackHalf(): Geom3[] {
     return [
       addColor(
-        [0.4, 0.4, 0.4],
+        [0.6, 0.6, 0.8],
         subtract(
           union(
-            Centered.cuboid([22, 15, 12]),
-            rotateY(this.sk.ButtonFace.other.rotateRad, Centered.cuboid([23, 15, 11])),
+            this.sk.transformNatHolder.applyGeom(cuboid({size: [10, 10, 6], center: [0, 0, 4]})),
+            //   Centered.cuboid([22, 15, 12]),
+            //   rotateY(this.sk.ButtonFace.other.rotateRad, Centered.cuboid([23, 15, 11])),
           ),
-          Centered.cuboid([30, 13, 10]),
-          translateX(-99 + 8, Centered.cuboid([99, 99, 99])),
+          // Centered.cuboid([30, 13, 10]),
+          translateX(-99 + 6, Centered.cuboid([99, 99, 99])),
+          this.sk.transformNatHolder.applyGeom(union(this.natHolder.full)),
+          translateY(-99 / 2, cuboid({size: [99, 99, 99]})),
         ),
       ),
     ];

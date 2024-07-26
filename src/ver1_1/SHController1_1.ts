@@ -1,12 +1,12 @@
 import {Geom3} from '@jscad/modeling/src/geometries/types';
 import {Viewable, ViewerItem} from '../types';
-import {Cacheable, cacheGetter, halfToFull} from '../utls';
+import {Cacheable, cacheGetter, Centered, halfToFull} from '../utls';
 import {ButtonPad1_1} from './ButtonPad1_1';
 import {Trigger1_1} from './Trigger1_1';
 import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {Transform3D} from '../utils/Transform';
 import {expand} from '@jscad/modeling/src/operations/expansions';
-import {mirrorX, rotateY, rotateZ, translateX} from '@jscad/modeling/src/operations/transforms';
+import {mirrorX, rotateY, rotateZ, translateX, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {Skeleton} from './Skeleton';
 import {cuboid} from '@jscad/modeling/src/primitives';
 
@@ -20,6 +20,7 @@ export class SHController1_1 extends Cacheable implements Viewable {
       {label: 'full', model: () => this.full},
       {label: 'gripHalf', model: () => this.gripHalf},
       {label: 'gripFull', model: () => this.gripFull},
+      {label: 'printGrip', model: () => this.printGrip},
       {label: 'gripSubtructionFull', model: () => this.gripSubtractionFull},
       {label: 'batteryBoxHolderHalf', model: () => this.batteryBoxHolderHalf},
       {label: 'batteryBoxHolderFull', model: () => this.batteryBoxHolderFull},
@@ -32,7 +33,11 @@ export class SHController1_1 extends Cacheable implements Viewable {
   }
 
   public get printItems(): ViewerItem[] {
-    return [{label: 'BatteryBoxHolder1_1', model: () => this.batteryBoxHolderForPrint}];
+    return [
+      {label: 'BatteryBoxHolder1_1', model: () => this.batteryBoxHolderForPrint},
+      {label: 'Trigger1_1', model: () => this.trigger.frontFull},
+      {label: 'TriggerJoint1_1', model: () => this.trigger.joint.full},
+    ];
   }
 
   public get displayName() {
@@ -79,6 +84,16 @@ export class SHController1_1 extends Cacheable implements Viewable {
         union(this.trigger.grip.half),
         this.trigger.grip.jointSubtructionHalf,
         this.transforms.batteryBoxHolderToGrip.applyGeoms(this.trigger.batteryBoxHolder.looseOutlineHalfBase),
+      ),
+    ];
+  }
+
+  public get printGrip(): Geom3[] {
+    return [
+      ...halfToFull(this.trigger.sk.transformSelf.applyGeoms(this.trigger.backHalf)),
+      subtract(
+        this.trigger.grip.sk.transformSelf.applyGeom(union(this.gripFull)),
+        cuboid({size: [99, 99, 99], center: [99 / 2, 0, 0]}),
       ),
     ];
   }

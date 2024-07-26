@@ -52,7 +52,7 @@ export class Skeleton {
     } as const;
     public static readonly other = {
       sideThickness: 1.5,
-      edgeToScrew: 6.5,
+      edgeToScrew: 7,
     } as const;
     public static readonly transform2d = new Transform2D([
       ['rotate', degToRad(76)],
@@ -187,6 +187,11 @@ export class Skeleton {
           ['gripEnd', 2],
         ]);
       },
+      get innerSideThickness() {
+        return (
+          this.frontGripJoint.valueAt('gripStart') - S.Trigger.ButtonFace.y.boardSpaceHalf - S.Trigger.other.jointOffset
+        );
+      },
     } as const;
     public static readonly z = {
       total: 32.5,
@@ -195,14 +200,17 @@ export class Skeleton {
     public static readonly other = {
       hullSphereRadius: 3,
       hullSmallSphereRadius: 2,
+      jointOffset: 0.2,
+      natHolderThickness: 4.5,
     } as const;
     public static get transformSelf() {
       return new Transform3D([['mirror', 'z']]);
     }
     public static get transformNatHolder() {
       return new Transform3D([
-        ['rotate', 'z', Math.PI],
-        ['translate', 18, 0, 2],
+        ['mirror', 'x'],
+        ['mirror', 'z'],
+        ['translate', 18, 0, S.Trigger.other.natHolderThickness + 4.5],
         ['rotate', 'y', S.Trigger.ButtonFace.other.rotateRad],
       ]);
     }
@@ -261,6 +269,9 @@ export class Skeleton {
         corner: 18,
         get thickness() {
           return S.Common.TactileSwitch.z.subterraneanHeight;
+        },
+        get boardSpaceHalf() {
+          return S.Trigger.ButtonFace.Board.y.totalHalf + 0.5;
         },
       } as const;
       public static readonly z = {
@@ -337,6 +348,7 @@ export class Skeleton {
               ['bottom', 5],
             ]);
           },
+          screw: 10,
         } as const;
         public static readonly y = {
           totalHalf: 11,
@@ -403,15 +415,39 @@ export class Skeleton {
         get total() {
           return S.Trigger.Joint.point2ds.counterScrew[0] + S.Common.Nat.radius + S.Trigger.Joint.other.natOffset + 1;
         },
+        get outline() {
+          return seqVal(
+            [
+              ['nanameEnd', 7],
+              ['end', flex()],
+            ],
+            this.total,
+          );
+        },
+        get holeSeq() {
+          return seqVal(
+            [
+              ['holeStart', 12],
+              ['holeNanameEnd', 8],
+              ['holeEnd', flex()],
+              ['end', (S.Common.Nat.radius + 1 + 0.2) * 2],
+            ],
+            this.total,
+          );
+        },
       },
       y: {
         headHalf: 12,
-        middleHalf: 15,
+        middleHalf: 15.8,
+        tailHalf: 11.8,
+        holeWidthHalf: 13,
+        holeTailWidthHalf: 10,
+        triggerBridgeHalf: 3,
       },
       z: {
         screwPoll: 4,
-        thickness: 3.5,
-        layer1Thickenss: 2,
+        thickness: 2.5,
+        layer1Thickenss: 1.2,
       },
       other: {
         screwPollRadius: 4,

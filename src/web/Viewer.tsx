@@ -26,6 +26,7 @@ const viewableValues: readonly Viewable[] = [
   v1_1.trigger.grip.end,
   v1_1.trigger.batteryBoxHolder,
   v1_1.trigger.joint,
+  v1_1.trigger.buttonFace,
   main,
   main.trigger.grip.board,
   main.trigger,

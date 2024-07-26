@@ -100,7 +100,11 @@ export class Trigger extends Cacheable implements Viewable {
         {label: 'buttonPadJointBaseHalf', model: () => this.buttonPadJointBaseHalf},
         {
           label: 'half3WithButtonPadJointBaseHalf',
-          model: () => [...this.half3, ...addColor([0.3, 0.3, 0.3], this.buttonPadJointBaseHalf)],
+          model: () => [
+            ...this.half3,
+            ...addColor([0.3, 0.3, 0.3], this.buttonPadJointBaseHalf),
+            ...this.buttonFace.boardHalf.map(this.transformForButtonFace),
+          ],
         },
         {label: 'fullWithGrip', model: () => this.fullWithGrip},
         {label: 'fullWithGrip3', model: () => this.fullWithGrip3},

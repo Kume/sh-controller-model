@@ -73,13 +73,13 @@ export class TactileSwitch extends Cacheable {
         {height: this.baseHeight + this.looseOffset},
         rectangle({size: [(this.baseRadius + this.looseOffset) * 2, (this.baseRadius + this.looseOffset) * 2]}),
       ),
-      extrudeLinear(
-        {height: 0.0001},
-        rectangle({
-          size: [(this.baseRadius + this.looseOffset) * 2, (this.baseRadius + this.looseOffset) * 2],
-          center: [3, 0],
-        }),
-      ),
+      // extrudeLinear(
+      //   {height: 0.0001},
+      //   rectangle({
+      //     size: [(this.baseRadius + this.looseOffset) * 2, (this.baseRadius + this.looseOffset) * 2],
+      //     center: [3, 0],
+      //   }),
+      // ),
     );
     const sw = translateZ(
       this.baseHeight,

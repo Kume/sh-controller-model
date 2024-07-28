@@ -5,6 +5,7 @@ import {colors} from '../common';
 import {translate, translateZ} from '@jscad/modeling/src/operations/transforms';
 import {TactileSwitch} from '../TactileSwitch';
 import {Screw} from '../Screw';
+import {cuboid} from '@jscad/modeling/src/primitives';
 
 export class TriggerBoard1_1 extends Cacheable {
   public readonly sk = Skeleton.Trigger.ButtonFace.Board;
@@ -38,6 +39,7 @@ export class TriggerBoard1_1 extends Cacheable {
     return [
       ...this.switches.map((sw) => sw.looseSquareToOctagonOutlineForButtonFace),
       ...this.screw.octagonLooseOutline,
+      cuboid({size: [3, 8, this.sk.z.leg], center: [this.sk.x.leg, 0, this.sk.z.leg / 2]}),
     ];
   }
 }

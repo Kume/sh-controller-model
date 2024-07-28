@@ -53,6 +53,24 @@ export class Screw extends Cacheable implements Viewable {
     );
   }
 
+  public get squareLooseOutline(): Geom3[] {
+    return [this.squareBodyLooseOutline, this.squareHeadLooseOutline];
+  }
+
+  public get squareBridgeSupport(): Geom3 {
+    const thickness = 0.4;
+    return this.transform(
+      cuboid({size: [this.radius * 2 + 0.2, this.headRadius * 2 + 0.4, thickness], center: [0, 0, -thickness / 2]}),
+    );
+  }
+
+  public get squareHeadLooseOutlineYobi(): Geom3 {
+    const height = this.looseHeadOutlineHeight;
+    return this.transform(
+      cuboid({size: [this.headRadius * 2 + 0.4 + 1.5, this.headRadius * 2 + 0.4, height], center: [0, 0, height / 2]}),
+    );
+  }
+
   public get headLooseOutline(): Geom3 {
     return this.transform(this.headLooseOutlineBase);
   }

@@ -8,6 +8,7 @@ import {circle, cuboid, cylinder, polygon, rectangle} from '@jscad/modeling/src/
 import {
   mirrorX,
   mirrorY,
+  mirrorZ,
   rotateX,
   rotateY,
   translate,
@@ -15,12 +16,18 @@ import {
   translateY,
   translateZ,
 } from '@jscad/modeling/src/operations/transforms';
-import {expand} from '@jscad/modeling/src/operations/expansions';
+import {hull} from '@jscad/modeling/src/operations/hulls';
+import {Screw} from '../Screw';
 
 const coverCollisionOffset = 0.3;
 
+const screwLength = 6;
+
 export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.BatteryBoxHolder;
+  public readonly screw = new Screw(screwLength, 2.5, (g) =>
+    this.sk.transformTailNat.applyGeom(mirrorZ(translateZ(screwLength - Skeleton.Common.Nat.z, g))),
+  );
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -90,6 +97,8 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
           ]),
         ),
       ),
+
+      ...this.screw.outline,
     ];
   }
 
@@ -210,30 +219,14 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get outlineHalf(): Geom3[] {
-    // グリップとの接続のための付け足し
-    const additionalJoint = subtract(
-      union(
-        // グリップ方向
-        this.geom3FromSidePlane(
-          polygon({
-            points: [
-              [this.sk.x.tailJointAdditionalStart, 0],
-              [this.sk.x.tailJointAdditionalStart, -this.sk.z.tailJointAdditional],
-              [this.sk.x.tailJoint, 0],
-            ],
-          }),
-          this.sk.y.tailJointAdditionalHalf,
-        ),
-      ),
-    );
     const base = subtract(
       union(this.geom3FromBottomPlane(this.endPlaneHalf, this.sk.x.total + 99)),
       this.outlineHalfSubtractuion,
       // 先端部分をButtonPadの側面と角度を合わせるための切り取り (ここで切り取る前提で↑で+99してる)
       this.sk.transformSelf.reversed().applyGeom(
         cuboid({
-          size: [99, 99, 99],
-          center: [99 / 2 - 0.3, 99 / 2, 0],
+          size: [999, 999, 999],
+          center: [999 / 2 - 0.3, 999 / 2, 0],
         }),
       ),
     );
@@ -258,7 +251,32 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
           ),
           // ボタンパッド近くの上部ナナメ部分 (本当はexpand(coverOutlineHalf)をsubtractしたいが、計算に時間がかかりすぎるため別途ナナメ部分だけ切り出してつなげる)
           intersect(base, union(this.coverSubtractionHalf)),
-          additionalJoint,
+
+          // グリップとの接続のための付け足し
+          this.geom3FromSidePlane(
+            polygon({
+              points: [
+                [this.sk.x.tailJointAdditionalStart, 0],
+                [this.sk.x.tailJointAdditionalStart, -this.sk.z.tailJointAdditional],
+                [this.sk.x.tailJoint, 0],
+              ],
+            }),
+            this.sk.y.tailJointAdditionalHalf,
+          ),
+
+          subtract(
+            hull(
+              translate(
+                [11.5, this.sk.BatteryBox.y.total / 2 - 1, -1],
+                Centered.cuboid([this.sk.x.tailToHead.valueAt('nanameStart'), 1, 1]),
+              ),
+              translate(
+                [10.5, this.sk.BatteryBox.y.total / 2 - 1, 0],
+                Centered.cuboid([this.sk.x.tailToHead.valueAt('nanameStart'), 1, 0.2]),
+              ),
+            ),
+            translate([this.sk.x.tailToHead.valueAt('nanameStart'), 0, -99 / 2], Centered.cuboid([99, 99, 99])),
+          ),
         ),
         // this.subtructionForJointHalf,
       ),
@@ -269,24 +287,7 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
   public get looseOutlineHalfBase(): Geom3[] {
     const endPlane = Centered.rectangle([this.sk.z.total, this.sk.y.totalHalf + 0.000001]);
     return [
-      subtract(
-        union(
-          // // グリップ方向へ付け足し
-          // this.geom3FromSidePlane(
-          //   polygon({
-          //     points: [
-          //       [0, 0],
-          //       [0, -this.sk.z.tailJointAdditional],
-          //       [this.sk.x.tailJoint, 0],
-          //     ],
-          //   }),
-          //   this.sk.y.totalHalf + 0.000001,
-          // ),
-          this.geom3FromBottomPlane(endPlane, this.sk.x.total),
-        ),
-
-        this.outlineHalfSubtractuion,
-      ),
+      subtract(this.geom3FromBottomPlane(endPlane, this.sk.x.total), this.outlineHalfSubtractuion),
       ...this.headJointHalf,
     ];
   }

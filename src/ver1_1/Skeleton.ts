@@ -52,7 +52,7 @@ export class Skeleton {
     } as const;
     public static readonly other = {
       sideThickness: 1.5,
-      edgeToScrew: 7,
+      edgeToScrew: 7.5,
     } as const;
     public static readonly transform2d = new Transform2D([
       ['rotate', degToRad(76)],
@@ -196,11 +196,13 @@ export class Skeleton {
     public static readonly z = {
       total: 32.5,
       back: 15,
+      /** 前パーツの内部空間の後ろの高さ */
+      frontInnerBackHight: 26.5,
     };
     public static readonly other = {
       hullSphereRadius: 3,
       hullSmallSphereRadius: 2,
-      jointOffset: 0.2,
+      jointOffset: 0.3,
       natHolderThickness: 4.5,
     } as const;
     public static get transformSelf() {
@@ -349,6 +351,7 @@ export class Skeleton {
             ]);
           },
           screw: 10,
+          leg: 18,
         } as const;
         public static readonly y = {
           totalHalf: 11,
@@ -356,6 +359,7 @@ export class Skeleton {
         } as const;
         public static readonly z = {
           thickness: 1.5,
+          leg: 2,
         };
         public static get transformSelf() {
           return new Transform3D([
@@ -418,6 +422,7 @@ export class Skeleton {
         get outline() {
           return seqVal(
             [
+              ['nanameStart', 3],
               ['nanameEnd', 7],
               ['end', flex()],
             ],
@@ -437,20 +442,22 @@ export class Skeleton {
         },
       },
       y: {
-        headHalf: 12,
-        middleHalf: 15.8,
-        tailHalf: 11.8,
+        headHalf: 10,
+        middleHalf: 15.55,
+        get tailHalf() {
+          return this.middleHalf - 4;
+        },
         holeWidthHalf: 13,
         holeTailWidthHalf: 10,
         triggerBridgeHalf: 3,
       },
       z: {
-        screwPoll: 4,
+        screwPoll: 3,
         thickness: 2.5,
         layer1Thickenss: 1.2,
       },
       other: {
-        screwPollRadius: 4,
+        screwPollRadius: 3.5,
         natOffset: 0.2,
       },
       get transformSelf() {
@@ -493,6 +500,7 @@ export class Skeleton {
       topWall: 15,
       total: 75,
       endJointTotal: 9.5,
+      // 強度的にはもう少し厚くしたいが、LEDの領域が削れるのでこれが上限
       endJointThickness: 1.5,
       get ledHole() {
         return seqVal([
@@ -544,8 +552,9 @@ export class Skeleton {
     }
     public static get transformSelf() {
       return new Transform3D([
-        ['translate', -this.x.total, 0, -S.Trigger.z.back],
+        ['translate', -this.x.total + 6, 0, 0],
         ['rotate', 'y', degToRad(-24)],
+        ['translate', 0, 0, -S.Trigger.z.back],
       ]);
     }
     public static get children() {
@@ -649,6 +658,10 @@ export class Skeleton {
         },
         get total() {
           return this.bottomToTop.totalFromTo('start', 'ledWallTop');
+        },
+        additionalForScrew: {
+          total: 9,
+          end: 1,
         },
         get bottomToTopForHoles() {
           return seqVal(
@@ -845,7 +858,7 @@ export class Skeleton {
         );
       },
       headJoint: {
-        headLength: 1.5,
+        headLength: 1.2,
       },
     } as const,
     get y() {
@@ -873,7 +886,7 @@ export class Skeleton {
             [
               ['hookStart', flex()],
               ['hookEnd', 2],
-              ['sideWallStart', 3],
+              ['sideWallStart', 4.5],
               [
                 'sideWallEnd',
                 this.totalHalf -
@@ -926,12 +939,12 @@ export class Skeleton {
     get transformSelf() {
       return new Transform3D([
         ['translate', -this.x.total, 0, -this.z.total + this.z.headHeight],
-        ['rotate', 'y', degToRad(-11)],
+        ['rotate', 'y', degToRad(-10)],
       ]);
     },
     get transformTailNat() {
       return new Transform3D([
-        ['rotate', 'y', Math.PI / 2 - degToRad(13)],
+        ['rotate', 'y', Math.PI / 2 - degToRad(14)],
         [
           'translate',
           this.x.tailToHead.valueAt('batteryBoxStart') - S.Common.Nat.z - this.other.natOffset - 0.7,

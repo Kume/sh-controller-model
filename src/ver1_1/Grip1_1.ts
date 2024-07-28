@@ -6,6 +6,7 @@ import {intersect, subtract, union} from '@jscad/modeling/src/operations/boolean
 import {
   mirrorX,
   mirrorY,
+  mirrorZ,
   rotateX,
   rotateY,
   translate,
@@ -13,14 +14,17 @@ import {
   translateY,
   translateZ,
 } from '@jscad/modeling/src/operations/transforms';
-import {circle, polygon} from '@jscad/modeling/src/primitives';
+import {circle, cuboid, polygon, rectangle} from '@jscad/modeling/src/primitives';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {MainBoard1_1} from './MainBoard1_1';
+import {hull} from '@jscad/modeling/src/operations/hulls';
+import {Screw} from '../Screw';
 
 export class Grip1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Grip;
   public readonly board = new MainBoard1_1();
   public readonly end = new GripEnd1_1();
+  private readonly screw = new Screw(6, 2.5, (g) => mirrorZ(translate([this.sk.Board.x.screw, 0, -2.5], g)));
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -130,35 +134,55 @@ export class Grip1_1 extends Cacheable implements Viewable {
     return [
       translateX(
         this.sk.x.endThickness,
-        this.sk.End_Old1.transformSelf.applyGeom(
-          extrudeLinear({height: this.sk.x.total}, [
-            // 基板全体が入るようにする空間
-            translateX(
-              this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom'),
-              Centered.rectangle([
-                this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'boardEnd'),
-                this.sk.Board.y.totalHalf + 0.5,
-              ]),
+        union(
+          subtract(
+            this.sk.End_Old1.transformSelf.applyGeom(
+              union(
+                extrudeLinear({height: this.sk.x.total}, [
+                  // 基板全体が入るようにする空間
+                  translateX(
+                    this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom'),
+                    Centered.rectangle([
+                      this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'boardEnd'),
+                      this.sk.Board.y.totalHalf + 0.5,
+                    ]),
+                  ),
+                  // 電池ボックスと干渉しないようにするための空間
+                  translateX(
+                    this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom') + 4,
+                    Centered.rectangle([
+                      this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'boardEnd') - 4,
+                      maxY,
+                    ]),
+                  ),
+                  // 基板の足が入るようにするスペース
+                  translateX(
+                    this.sk.End_Old1.x.topToBottom.totalFromTo('bottomWallStart', 'bottom'),
+                    Centered.rectangle([
+                      this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'bottomWallStart'),
+                      this.sk.Board.y.totalHalf - 2,
+                    ]),
+                  ),
+                  // GripEndのTapWallを差し込めるようにするスペース
+                  translateX(
+                    this.sk.End.z.bottomToTop.valueAt('ledWallBottom'),
+                    Centered.rectangle([this.sk.End.z.bottomToTop.totalFromTo('ledWallBottom', 'ledWallTop') + 0.2, 7]),
+                  ),
+                ]),
+              ),
             ),
-            // 電池ボックスと干渉しないようにするための空間
-            translateX(
-              this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom') + 4,
-              Centered.rectangle([this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'boardEnd') - 4, maxY]),
+            hull(
+              cuboid({
+                size: [8, 8, this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom') * 2],
+                center: [this.sk.Board.x.screw, 0, 0],
+              }),
+              cuboid({
+                size: [14, 8, 0.000001],
+                center: [this.sk.Board.x.screw, 0, 0],
+              }),
             ),
-            // 基板の足が入るようにするスペース
-            translateX(
-              this.sk.End_Old1.x.topToBottom.totalFromTo('bottomWallStart', 'bottom'),
-              Centered.rectangle([
-                this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'bottomWallStart'),
-                this.sk.Board.y.totalHalf - 2,
-              ]),
-            ),
-            // GripEndのTapWallを差し込めるようにするスペース
-            translateX(
-              this.sk.End.z.bottomToTop.valueAt('ledWallBottom'),
-              Centered.rectangle([this.sk.End.z.bottomToTop.totalFromTo('ledWallBottom', 'ledWallTop') + 0.2, 7]),
-            ),
-          ]),
+          ),
+          this.screw.octagonLooseOutline,
         ),
       ),
 
@@ -227,8 +251,55 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
             [0, 0, this.sk.z.bottomToTop.valueAt('ledWallBottom')],
             Centered.cuboid([10, 7 - 0.3, this.sk.z.ledWallThickness]),
           ),
+
+          translateZ(
+            this.sk.z.bottomToTop.valueAt('ledWallTop'),
+            hull(
+              Centered.cuboid([1, Skeleton.Grip.y.resetSwitchHole.valueAt('start'), this.sk.z.additionalForScrew.end]),
+              translateX(
+                6.5,
+                Centered.cuboid([
+                  1,
+                  Skeleton.Grip.y.resetSwitchHole.valueAt('start'),
+                  this.sk.z.additionalForScrew.total,
+                ]),
+              ),
+            ),
+          ),
         ),
-        // mirrorX(rotateY(-Math.PI / 2, chamfer(this.endOutlineHalf, 1))),
+        translate(
+          [
+            Skeleton.Grip.x.topWall + 1 - Skeleton.Grip.x.endJointTotal - 0.5,
+            0,
+            this.sk.z.bottomToTop.totalFromTo('gripEndBottomStart', 'ledWallTop'),
+          ],
+          Centered.cuboid([2.5, 99, 2.5]),
+        ),
+
+        // 面取り
+        mirrorX(
+          rotateY(
+            -Math.PI / 2,
+            union(
+              subtract(
+                chamfer(this.endOutlineHalf, 0.6),
+                cuboid({size: [99, Skeleton.Grip.y.resetSwitchHole.valueAt('start') * 2, 99]}),
+              ),
+              intersect(
+                chamfer(rectangle({size: [99, 10], center: [99 / 2 + this.sk.z.bottomToTop.valueAt('start'), 0]}), 0.6),
+                cuboid({size: [99, Skeleton.Grip.y.resetSwitchHole.valueAt('start') * 2, 99]}),
+              ),
+              intersect(
+                chamfer(rectangle({size: [99, Skeleton.Grip.y.resetSwitchHole.valueAt('start') * 2]}), 0.6),
+                cuboid({size: [99, 99, 99], center: [99 / 2 + this.sk.z.bottomToTop.valueAt('ledWallTop'), 0, 0]}),
+              ),
+              intersect(
+                chamfer(this.endOutlineHalf, 0.6),
+                chamfer(rectangle({size: [99, Skeleton.Grip.y.resetSwitchHole.valueAt('start') * 2]}), 0.6),
+              ),
+            ),
+          ),
+        ),
       ),
     ];
   }

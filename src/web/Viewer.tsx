@@ -20,6 +20,7 @@ const v1_1 = new SHController1_1();
 const viewableValues: readonly Viewable[] = [
   v1_1,
   v1_1.buttonPad,
+  v1_1.buttonPad.board,
   v1_1.trigger,
   v1_1.trigger.grip,
   v1_1.trigger.grip.board,

@@ -24,7 +24,7 @@ export class Grip1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Grip;
   public readonly board = new MainBoard1_1();
   public readonly end = new GripEnd1_1();
-  private readonly screw = new Screw(6, 2.5, (g) => mirrorZ(translate([this.sk.Board.x.screw, 0, -2.5], g)));
+  private readonly screw = new Screw(6, 2.5, (g) => mirrorZ(translate([this.sk.Board.x.screw, 0, -2], g)));
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -50,12 +50,11 @@ export class Grip1_1 extends Cacheable implements Viewable {
           [
             this.sk.x.resetSwitchHole.valueAt('start'),
             this.sk.y.resetSwitchHole.valueAt('start'),
-            this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'bottom'),
+            this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'ledWallBottom'),
           ],
           Centered.cuboid([
             this.sk.x.resetSwitchHole.totalFromTo('start', 'end'),
             this.sk.y.resetSwitchHole.totalFromTo('start', 'end'),
-            // this.sk.End_Old1.x.topToBottom.valueAt('topWallEnd'),
             99,
           ]),
         ),
@@ -64,7 +63,7 @@ export class Grip1_1 extends Cacheable implements Viewable {
         [
           this.sk.x.ledHole.valueAt('start'),
           this.sk.y.ledHole.valueAt('start'),
-          this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'bottom') + this.sk.z.ledHold,
+          this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'ledWallBottom') + this.sk.z.ledHole,
         ],
         Centered.cuboid([
           this.sk.x.ledHole.totalFromTo('start', 'end'),
@@ -141,25 +140,25 @@ export class Grip1_1 extends Cacheable implements Viewable {
                 extrudeLinear({height: this.sk.x.total}, [
                   // 基板全体が入るようにする空間
                   translateX(
-                    this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom'),
+                    this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'boardBottom') - 0.2,
                     Centered.rectangle([
-                      this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'boardEnd'),
+                      this.sk.End.z.bottomToTop.totalFromTo('boardBottom', 'ledWallBottom'),
                       this.sk.Board.y.totalHalf + 0.5,
                     ]),
                   ),
                   // 電池ボックスと干渉しないようにするための空間
                   translateX(
-                    this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom') + 4,
+                    this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'boardBottom') + 4,
                     Centered.rectangle([
-                      this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'boardEnd') - 4,
+                      this.sk.End.z.bottomToTop.totalFromTo('boardBottom', 'ledWallBottom') - 4,
                       maxY,
                     ]),
                   ),
                   // 基板の足が入るようにするスペース
                   translateX(
-                    this.sk.End_Old1.x.topToBottom.totalFromTo('bottomWallStart', 'bottom'),
+                    this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'gripEndBottomEnd'),
                     Centered.rectangle([
-                      this.sk.End_Old1.x.topToBottom.totalFromTo('topWallEnd', 'bottomWallStart'),
+                      this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomEnd', 'ledWallBottom'),
                       this.sk.Board.y.totalHalf - 2,
                     ]),
                   ),
@@ -171,16 +170,20 @@ export class Grip1_1 extends Cacheable implements Viewable {
                 ]),
               ),
             ),
-            hull(
-              cuboid({
-                size: [8, 8, this.sk.End_Old1.x.topToBottom.totalFromTo('boardEnd', 'bottom') * 2],
-                center: [this.sk.Board.x.screw, 0, 0],
-              }),
-              cuboid({
-                size: [14, 8, 0.000001],
-                center: [this.sk.Board.x.screw, 0, 0],
-              }),
-            ),
+            // ネジ穴のための盛り上がり
+            (() => {
+              const height = this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'boardBottom') - 0.2;
+              return hull(
+                cuboid({
+                  size: [8, 8, height],
+                  center: [this.sk.Board.x.screw, 0, height / 2],
+                }),
+                cuboid({
+                  size: [8 + 6, 8, 0.000001],
+                  center: [this.sk.Board.x.screw, 0, 0],
+                }),
+              );
+            })(),
           ),
           this.screw.octagonLooseOutline,
         ),
@@ -249,7 +252,7 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
           this.endPlaneToGeom3(this.endOutlineHalf, this.sk.x.base),
           translate(
             [0, 0, this.sk.z.bottomToTop.valueAt('ledWallBottom')],
-            Centered.cuboid([10, 7 - 0.3, this.sk.z.ledWallThickness]),
+            Centered.cuboid([15, 7 - 0.3, this.sk.z.ledWallThickness]),
           ),
 
           translateZ(
@@ -310,7 +313,7 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get innerHalf(): Geom3[] {
-    const offset = 0.2;
+    const offset = 0.3;
     return [
       translate(
         [this.sk.x.thickness, 0, 0],
@@ -344,7 +347,10 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
       this.endPlaneToGeom3(
         subtract(
           Centered.rectangle([this.sk.z.bottomToTop.totalValue + 0.2, this.sk.y.totalHalf + 0.000001]),
-          this.makeInnerEndFaceHalf(),
+          subtract(
+            this.makeInnerEndFaceHalf(),
+            translateX(this.sk.z.bottomToTop.totalValue - 1.2, Centered.rectangle([10, 99])),
+          ),
         ),
         this.sk.x.base,
       ),

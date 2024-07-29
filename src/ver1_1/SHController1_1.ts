@@ -52,6 +52,8 @@ export class SHController1_1 extends Cacheable implements Viewable {
       {label: 'TriggerJoint1_1', model: () => this.trigger.joint.full},
       {label: 'Grip1_1', model: () => this.printGrip},
       {label: 'GripEnd1_1', model: () => this.gripEndFull},
+      {label: 'ButtonPad1_1', model: () => this.buttonPad.full},
+      {label: 'ButtonPadCover1_1', model: () => this.buttonPad.coverFull},
     ];
   }
 
@@ -129,7 +131,7 @@ export class SHController1_1 extends Cacheable implements Viewable {
       ),
 
       // 折れそうなところを補強
-      ...halfToFull([translate([-4, Skeleton.Trigger.Joint.y.tailHalf - 1 + 0.5, -9 - 4], Centered.cuboid([4, 2, 9]))]),
+      ...halfToFull([translate([-4, Skeleton.Grip.Board.y.totalHalf + 0.5, -9 - 4], Centered.cuboid([4, 2, 9]))]),
 
       // 角を急にならないようにする補助部分
       translate(

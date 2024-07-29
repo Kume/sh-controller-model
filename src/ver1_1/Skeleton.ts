@@ -39,16 +39,61 @@ export class Skeleton {
    * z: 軸の向き: スティック側が上 領域: z>0
    */
   public static readonly ButtonPad = class ButtonPad {
+    public static readonly x = {
+      total: 82,
+      get stickSideToEnd() {
+        return seqVal(
+          [
+            ['stick', 15],
+            ['boardStart', 14],
+            ['boardEnd', Skeleton.ButtonPad.Board.x.total],
+            ['end', flex()],
+          ],
+          this.total,
+        );
+      },
+      get cover() {
+        return seqVal(
+          [
+            ['start', S.ButtonPad.other.sideThickness],
+            ['stickSideEnd', 43],
+            ['buttonSideStart', 3],
+            ['end', flex()],
+            ['baseEnd', S.ButtonPad.other.sideThickness],
+          ],
+          this.total,
+        );
+      },
+      get natGroove() {
+        return seqVal([
+          ['start', 31],
+          ['end', 25],
+        ]);
+      },
+    } as const;
     public static readonly y = {
       start: 10,
       end: 13,
-    } as const;
-    public static readonly x = {
-      total: 82,
+      natGrooveHalf: 10.5 / 2,
+      get coverButtonSideWidthHalf() {
+        return S.ButtonPad.Board.y.totalHalf + 0.5;
+      },
+      get coverStickSideWidthHalf() {
+        return this.coverButtonSideWidthHalf + 3;
+      },
     } as const;
     public static readonly z = {
       total: 12,
       topThickness: 1.5,
+      get boardBottom() {
+        return this.total - S.ButtonPad.Board.z.thickness - S.Common.TactileSwitch.z.subterraneanHeight;
+      },
+      get natGroove() {
+        return S.ButtonPad.Board.z.natHolder.totalFromTo('boardTop', 'natEnd');
+      },
+      get stickBottom() {
+        return this.boardBottom - 0.5
+      }
     } as const;
     public static readonly other = {
       sideThickness: 1.5,
@@ -71,6 +116,14 @@ export class Skeleton {
         // もう一度ButtonPadの座標系に戻す
         this.transform2d.reversed(),
       ),
+    };
+    public static readonly transform3ds = {
+      get stick() {
+        return new Transform3D([
+          ['rotate', 'z', degToRad(31)],
+          ['translate', S.ButtonPad.x.stickSideToEnd.valueAt('stick'), 0, S.ButtonPad.z.stickBottom],
+        ]);
+      },
     };
     public static readonly transformSelf = this.transform2d.to3d();
     public static get point2ds() {
@@ -168,6 +221,95 @@ export class Skeleton {
         },
       } as const satisfies Partial<Record<keyof typeof this.points, PointViewMeta>>;
     }
+    public static get children() {
+      return {
+        Board: this.Board,
+      };
+    }
+    public static readonly Board = {
+      x: {
+        get stickSideToEnd() {
+          return seqVal([
+            ['button1', 6],
+            ['button2', 13],
+            ['button3', 13],
+            ['button4', 11],
+            ['end', 5],
+          ]);
+        },
+        get total() {
+          return this.stickSideToEnd.totalValue;
+        },
+        screw: 32,
+      },
+      y: {
+        total: 20,
+        get totalHalf() {
+          return this.total / 2;
+        },
+        buttonHalf: 7,
+      },
+      z: {
+        thickness: 1.5,
+        get natHolder() {
+          return seqVal([
+            ['boardTop', S.ButtonPad.Board.z.thickness],
+            ['natStart', 1.5],
+            ['natEnd', 3.4],
+            ['screwHoleEnd', 2],
+          ]);
+        },
+      },
+      get transformSelf() {
+        return new Transform3D([
+          ['translate', S.ButtonPad.x.stickSideToEnd.valueAt('boardStart'), 0, S.ButtonPad.z.boardBottom],
+        ]);
+      },
+      get point2ds() {
+        return {
+          board: [
+            [0, this.y.totalHalf],
+            [0, -this.y.totalHalf],
+            [this.x.total, -this.y.totalHalf],
+            [this.x.total, this.y.totalHalf],
+          ],
+          button1A: [this.x.stickSideToEnd.valueAt('button1'), this.y.buttonHalf],
+          button2A: [this.x.stickSideToEnd.valueAt('button2'), this.y.buttonHalf],
+          button3A: [this.x.stickSideToEnd.valueAt('button3'), this.y.buttonHalf],
+          button1B: [this.x.stickSideToEnd.valueAt('button1'), -this.y.buttonHalf],
+          button2B: [this.x.stickSideToEnd.valueAt('button2'), -this.y.buttonHalf],
+          button3B: [this.x.stickSideToEnd.valueAt('button3'), -this.y.buttonHalf],
+          button4: [this.x.stickSideToEnd.valueAt('button4'), 0],
+          get buttonAs() {
+            return [this.button1A, this.button2A, this.button3A] as const;
+          },
+          get buttonBs() {
+            return [this.button1B, this.button2B, this.button3B] as const;
+          },
+          get buttons() {
+            return [...this.buttonAs, ...this.buttonBs, this.button4];
+          },
+        } as const;
+      },
+      get points() {
+        return {
+          board: this.point2ds.board.map((p) => [...p, 0]),
+          buttonTops: this.point2ds.buttons.map((p) => [...p, S.Common.TactileSwitch.z.total + this.z.thickness]),
+        };
+      },
+      get pointsViewMeta() {
+        return {
+          board: {
+            color: colors.board,
+            defaultVisible: true,
+          },
+          buttonTops: {
+            color: [0.2, 0.2, 0.2],
+            defaultVisible: true,
+          },
+        } as const satisfies Partial<Record<keyof typeof this.points, PointViewMeta>>;
+      },
+    } as const;
   };
   static readonly Trigger = class Trigger {
     public static readonly x = {
@@ -198,6 +340,7 @@ export class Skeleton {
       back: 15,
       /** 前パーツの内部空間の後ろの高さ */
       frontInnerBackHight: 26.5,
+      // frontInnerBackHight: 27,
     };
     public static readonly other = {
       hullSphereRadius: 3,
@@ -471,7 +614,7 @@ export class Skeleton {
         const counterScrew = S.ButtonPad.transform2d.applyVec(S.ButtonPad.point2ds.counterScrew);
         return {
           screw,
-          counterScrew: [counterScrew[0], 10],
+          counterScrew,
         } as const;
       },
       get points() {
@@ -510,7 +653,7 @@ export class Skeleton {
       },
       get resetSwitchHole() {
         return seqVal([
-          ['start', 2.5],
+          ['start', 2.7],
           ['end', S.Grip.other.resetSwitchHoleSize],
         ]);
       },
@@ -530,7 +673,7 @@ export class Skeleton {
         },
         get resetSwitchHole() {
           return seqVal([
-            ['start', 4],
+            ['start', 4.2],
             ['end', S.Grip.other.resetSwitchHoleSize],
           ]);
         },
@@ -539,7 +682,7 @@ export class Skeleton {
     public static get z() {
       return {
         total: this.End_Old1.x.total,
-        ledHold: 0.5,
+        ledHole: 0.5,
         endJoint: 1.6,
       } as const;
     }
@@ -660,8 +803,8 @@ export class Skeleton {
           return this.bottomToTop.totalFromTo('start', 'ledWallTop');
         },
         additionalForScrew: {
-          total: 9,
-          end: 1,
+          total: 10,
+          end: 4,
         },
         get bottomToTopForHoles() {
           return seqVal(
@@ -669,9 +812,9 @@ export class Skeleton {
               ['start', this.bottomToTop.valueAt('start')],
               ['switchHoleStart', flex()],
               ['switchHoleEnd', 4],
-              ['usbHoleStart', 7.2],
+              ['usbHoleStart', 7.4],
               ['usbHoleEnd', 4],
-              ['ledWallTop', this.ledWallThickness],
+              ['ledWallTop', this.ledWallThickness - 0.2],
             ],
             this.bottomToTop.valueAt('ledWallTop'),
           );
@@ -701,7 +844,7 @@ export class Skeleton {
         return {
           bottomToTop,
           total: bottomToTop.totalValue,
-          legBottom: 2,
+          legBottom: 1.5,
         } as const;
       },
       get transformSelf() {
@@ -768,7 +911,7 @@ export class Skeleton {
             return seqVal([
               ['legBottom', -3.5],
               ['legBase', 3.5],
-              ['boardBottom', 10.7],
+              ['boardBottom', 11.2],
               ['boardTop', 1],
               ['usbTop', 3],
             ]);

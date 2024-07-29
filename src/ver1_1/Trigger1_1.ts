@@ -130,7 +130,10 @@ export class Trigger1_1 extends Cacheable implements Viewable {
           intersect(this.outlineHalf, translateX(this.sk.x.gripSide, Centered.cuboid([99, 99, 99]))),
 
           // トリガーとグリップの隙間を見えなくするために余分に後ろに伸ばすところ
-          translateX(this.sk.x.gripSide, rotateY(-Math.PI / 2, extrudeLinear({height: 1}, this.frontJointSupprtGeom2))),
+          translateX(
+            this.sk.x.gripSide,
+            rotateY(-Math.PI / 2, extrudeLinear({height: 0.8}, this.frontJointSupprtGeom2)),
+          ),
 
           // 側面外側
           // hullを使っているのは、切り口が鋭くなりすぎないようにy軸に厚みを持たせるため
@@ -261,15 +264,17 @@ export class Trigger1_1 extends Cacheable implements Viewable {
 
   public get backHalf(): Geom3[] {
     const underAreaHeight = 10;
+    const headThickness = 0.7;
+    const base = intersect(
+      union(this.outlineHalf),
+      // outlineをいい感じのサイズに切り取る
+      Centered.cuboid([this.sk.x.gripSide - headThickness, this.sk.y.frontGripJoint.valueAt('gripEnd'), 99]),
+    );
     return [
       addColor(
         [0.6, 0.8, 0.8],
         subtract(
-          intersect(
-            union(this.outlineHalf),
-            // outlineをいい感じのサイズに切り取る
-            Centered.cuboid([this.sk.x.gripSide, this.sk.y.frontGripJoint.valueAt('gripEnd'), 99]),
-          ),
+          hull(base, translateX(headThickness, base)),
 
           // 下段の領域を削る
           extrudeLinear(
@@ -319,12 +324,12 @@ export class Trigger1_1 extends Cacheable implements Viewable {
           // ネジ穴部分を削る
           this.jointScrew.octagonLooseOutline,
 
-          // グリップ側に意図的につけた出っ張りの部分を削る
-          translateX(
-            this.sk.x.gripSide,
+          // トリガー側に意図的につけた出っ張りの部分を削る
+          translate(
+            [this.sk.x.gripSide, 0, -0.2],
             rotateY(
               -Math.PI / 2,
-              extrudeLinear({height: 1.2}, expand({delta: 0.2, corners: 'edge'}, this.frontJointSupprtGeom2)),
+              extrudeLinear({height: 1}, expand({delta: 0.4, corners: 'edge'}, this.frontJointSupprtGeom2)),
             ),
           ),
         ),
@@ -526,12 +531,12 @@ class Joint1_1 extends Cacheable implements Viewable {
           this.sk.x.outline.valueAt('nanameStart'),
           Centered.rectangle([this.sk.x.outline.valueAt('nanameEnd'), this.sk.y.tailHalf]),
         ),
+        translate(
+          [this.sk.point2ds.counterScrew[0] - 1, this.sk.point2ds.counterScrew[1]],
+          hexagon(Skeleton.Common.Nat.radius + 0.2 + 1 + 1),
+        ),
       ),
       Centered.rectangle([this.sk.x.outline.valueAt('nanameEnd'), this.sk.y.tailHalf]),
-      translate(
-        [this.sk.point2ds.counterScrew[0] - 1, this.sk.point2ds.counterScrew[1]],
-        hexagon(Skeleton.Common.Nat.radius + 0.2 + 1 + 1),
-      ),
     );
   }
 
@@ -547,25 +552,30 @@ class Joint1_1 extends Cacheable implements Viewable {
   }
 
   public get layer2Outline() {
+    const offset = 1;
     return union(
-      Centered.rectangle([this.sk.x.total, this.sk.y.headHalf - 1]),
+      Centered.rectangle([this.sk.x.total, this.sk.y.headHalf - offset]),
       hull(
         translateX(
           this.sk.x.outline.valueAt('nanameEnd'),
           Centered.rectangle([
             this.sk.point2ds.counterScrew[0] - this.sk.x.outline.valueAt('nanameEnd'),
-            this.sk.y.middleHalf - 1,
+            this.sk.y.middleHalf - offset,
           ]),
         ),
         translateX(
           this.sk.x.outline.valueAt('nanameStart'),
-          Centered.rectangle([this.sk.x.outline.valueAt('nanameEnd'), this.sk.y.tailHalf - 1]),
+          Centered.rectangle([this.sk.x.outline.valueAt('nanameEnd'), this.sk.y.tailHalf - offset]),
         ),
+        // translate(
+        //   [this.sk.point2ds.counterScrew[0] - 1, this.sk.point2ds.counterScrew[1]],
+        //   hexagon(Skeleton.Common.Nat.radius + 0.2 + 1 + 1),
+        // ),
       ),
-      Centered.rectangle([this.sk.x.outline.valueAt('nanameEnd'), this.sk.y.tailHalf - 1]),
-      translate(
-        [this.sk.point2ds.counterScrew[0], this.sk.point2ds.counterScrew[1]],
-        hexagon(Skeleton.Common.Nat.radius + 0.2 + 1),
+      Centered.rectangle([this.sk.x.outline.valueAt('nanameEnd'), this.sk.y.tailHalf - offset]),
+      intersect(
+        translateX(this.sk.x.holeSeq.valueAt('holeEnd'), Centered.rectangle([99, 99])),
+        subtract(this.layer1Outline, translateY(this.sk.y.middleHalf - offset, Centered.rectangle([99, 99]))),
       ),
     );
   }
@@ -599,7 +609,7 @@ class Joint1_1 extends Cacheable implements Viewable {
     );
 
     // ナットのはみ出しに備えて前方のジョイントあたりに余分に開けておくスペース
-    const frontJointMargin = 2;
+    const frontJointMargin = 2.5;
 
     return [
       subtract(
@@ -609,6 +619,7 @@ class Joint1_1 extends Cacheable implements Viewable {
             expand({delta: Skeleton.Trigger.other.jointOffset, corners: 'edge'}, this.layer2Outline),
           ),
 
+          // ボタン面の壁を削る部分 (ブリッジを形成しないといけないので、側面と削り方が違う)
           intersect(
             hull(
               translateZ(
@@ -626,6 +637,7 @@ class Joint1_1 extends Cacheable implements Viewable {
             frontArea,
           ),
 
+          // 側面を削る部分
           subtract(
             hull(
               translateZ(

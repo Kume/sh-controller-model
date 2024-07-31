@@ -310,17 +310,45 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
             Centered.cuboid([15, this.sk.y.totalHalf - 5.5 - 0.2, this.sk.z.ledWallThickness + 2]),
           ),
 
+          // ネジ穴を作るための部分
           translateZ(
             this.sk.z.bottomToTop.valueAt('ledWallTop'),
-            hull(
-              Centered.cuboid([1, Skeleton.Grip.y.resetSwitchHole.valueAt('start'), this.sk.z.additionalForScrew.end]),
-              translateX(
-                6.5,
-                Centered.cuboid([
-                  1,
-                  Skeleton.Grip.y.resetSwitchHole.valueAt('start'),
-                  this.sk.z.additionalForScrew.total,
-                ]),
+            union(
+              translate(
+                [0, 5.5 / 2 + 0.2, 0],
+                hull(
+                  Centered.cuboid([
+                    1,
+                    Skeleton.Grip.y.resetSwitchHole.valueAt('start') - 5.5 / 2 - 0.2,
+                    this.sk.z.additionalForScrew.end,
+                  ]),
+                  translateX(
+                    6.5,
+                    Centered.cuboid([
+                      1,
+                      Skeleton.Grip.y.resetSwitchHole.valueAt('start') - 5.5 / 2 - 0.2,
+                      this.sk.z.additionalForScrew.total,
+                    ]),
+                  ),
+                ),
+              ),
+              translate(
+                [0.6, 0, 0],
+                hull(
+                  Centered.cuboid([
+                    1,
+                    Skeleton.Grip.y.resetSwitchHole.valueAt('start'),
+                    this.sk.z.additionalForScrew.end,
+                  ]),
+                  translateX(
+                    6.5,
+                    Centered.cuboid([
+                      1,
+                      Skeleton.Grip.y.resetSwitchHole.valueAt('start'),
+                      this.sk.z.additionalForScrew.total,
+                    ]),
+                  ),
+                ),
               ),
             ),
           ),
@@ -334,7 +362,7 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
         //   Centered.cuboid([2.5, 99, 2.5]),
         // ),
 
-        // 面取り
+        // End側の面取り
         mirrorX(
           rotateY(
             -Math.PI / 2,
@@ -354,6 +382,19 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
               intersect(
                 chamfer(this.endOutlineHalf, 0.6),
                 chamfer(rectangle({size: [99, Skeleton.Grip.y.resetSwitchHole.valueAt('start') * 2]}), 0.6),
+              ),
+            ),
+          ),
+        ),
+        // グリップ側の面取り
+        mirrorX(
+          rotateY(
+            -Math.PI / 2,
+            subtract(
+              translate([0, 0, this.sk.x.base - 0.6], extrudeLinear({height: 0.6}, this.endOutlineHalf)),
+              hull(
+                translateZ(this.sk.x.base - 0.6, extrudeLinear({height: 0.0001}, this.endOutlineHalf)),
+                translate([0.6, 0, this.sk.x.base], extrudeLinear({height: 0.6}, this.endOutlineHalf)),
               ),
             ),
           ),

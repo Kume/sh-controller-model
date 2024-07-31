@@ -7,8 +7,6 @@ import {subtract, union} from '@jscad/modeling/src/operations/booleans';
 import {Transform3D} from '../utils/Transform';
 import {expand} from '@jscad/modeling/src/operations/expansions';
 import {
-  center,
-  mirrorX,
   mirrorY,
   mirrorZ,
   rotateY,
@@ -22,6 +20,7 @@ import {Skeleton} from './Skeleton';
 import {cuboid, rectangle} from '@jscad/modeling/src/primitives';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {MainBoard} from '../MainBoard';
+import {hull} from '@jscad/modeling/src/operations/hulls';
 
 export class SHController1_1 extends Cacheable implements Viewable {
   public readonly trigger = new Trigger1_1();
@@ -135,8 +134,13 @@ export class SHController1_1 extends Cacheable implements Viewable {
         cuboid({size: [99, 99, 99], center: [99 / 2, 0, 0]}),
       ),
 
-      // 折れそうなところを補強
-      ...halfToFull([translate([-4, Skeleton.Grip.Board.y.totalHalf + 0.5, -9 - 4], Centered.cuboid([4, 2, 9]))]),
+      // // 折れそうなところを補強 => 電池ボックスが引っかかるので廃止
+      // ...halfToFull([
+      //   hull(
+      //     translate([-0.5, Skeleton.Grip.Board.y.totalHalf + 0.5, -9 - 4], Centered.cuboid([0.5, 2, 9])),
+      //     translate([-4, Skeleton.Grip.Board.y.totalHalf + 0.5, -9 - 4], Centered.cuboid([0.5, 2, 2])),
+      //   ),
+      // ]),
 
       // 角を急にならないようにする補助部分
       translate(
@@ -171,7 +175,9 @@ export class SHController1_1 extends Cacheable implements Viewable {
     return [
       subtract(
         union(halfToFull(this.trigger.grip.end.half)),
-        this.gripSubtractionFull,
+        ...this.transforms.batteryBoxHolderToGrip.applyGeoms(
+          halfToFull([union(this.trigger.batteryBoxHolder.looseOutlineHalfBase)]),
+        ),
         this.trigger.grip.innerFull,
 
         // ネジ穴 組み立て誤差で微妙にずれるので、translateZで調整

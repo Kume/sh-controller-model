@@ -86,7 +86,7 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
         // 対で印刷するときに面するケーブルフックが来るところのスペースを開けておく
         translate(
           [
-            this.sk.x.tailToHeadForCableHook.valueAt('hookStart') - 0.5,
+            this.sk.x.tailToHeadForCableHook.valueAt('hookStart') + 0.5,
             -this.sk.y.tailToHeadForCableHook.valueAt('hookEnd') - 0.5,
             0,
           ],
@@ -98,7 +98,7 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
         ),
       ),
 
-      ...this.screw.outline,
+      // ...this.screw.outline,
     ];
   }
 
@@ -261,7 +261,8 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
                 [this.sk.x.tailJoint, 0],
               ],
             }),
-            this.sk.y.tailJointAdditionalHalf,
+            2,
+            this.sk.y.totalHalf - 2 - 1.75,
           ),
 
           subtract(
@@ -349,31 +350,57 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get coverHalf(): Geom3[] {
-    return [subtract(this.coverOutlineHalf, this.innerHalf)];
+    return [
+      subtract(
+        this.coverOutlineHalf,
+        this.innerHalf,
+        mirrorX(
+          rotateY(
+            -Math.PI / 2,
+            chamfer(
+              union(
+                this.coverEndPlaneHalf,
+                subtract(
+                  rectangle({size: [this.sk.z.total * 2, this.sk.y.topWidthHalf * 2]}),
+                  rectangle({
+                    size: [this.sk.other.radius * 2.2, this.sk.other.radius * 2.2],
+                    center: [this.sk.z.total, this.sk.y.totalHalf],
+                  }),
+                ),
+              ),
+              0.8,
+            ),
+          ),
+        ),
+        // 印刷の都合で使う凹み
+        translate([1.5, 3, this.sk.z.bottomToTop.valueAt('batteryBoxBase')], Centered.cuboid([99, 6, 1])),
+      ),
+    ];
   }
 
   @cacheGetter
   public get coverOutlineHalf(): Geom3[] {
     return [
       subtract(
-        this.geom3FromBottomPlane(
-          intersect(
-            this.endPlaneHalf,
-            rectangle({
-              size: [this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top'), this.sk.y.topWidthHalf * 2],
-              center: [
-                this.sk.z.bottomToTop.valueAt('batteryBoxBase') +
-                  this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top') / 2 +
-                  coverCollisionOffset,
-                0,
-              ],
-            }),
-          ),
-          this.sk.x.coverTailToHead.valueAt('coverEnd'),
-        ),
+        this.geom3FromBottomPlane(this.coverEndPlaneHalf, this.sk.x.coverTailToHead.valueAt('coverEnd')),
         this.coverSubtractionHalf,
       ),
     ];
+  }
+
+  public get coverEndPlaneHalf(): Geom2 {
+    return intersect(
+      this.endPlaneHalf,
+      rectangle({
+        size: [this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top'), this.sk.y.topWidthHalf * 2],
+        center: [
+          this.sk.z.bottomToTop.valueAt('batteryBoxBase') +
+            this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top') / 2 +
+            coverCollisionOffset,
+          0,
+        ],
+      }),
+    );
   }
 
   /**

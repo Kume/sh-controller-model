@@ -76,7 +76,48 @@ export class Grip1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get half(): Geom3[] {
-    return [subtract(union(this.outlineHalf), this.innerHalf, this.end.subtractionForGripHalf)];
+    const jointWidth = 5.5;
+    const jointHeight = 6;
+    const joinLength = 9;
+    const jointX = 8;
+    return [
+      subtract(
+        union(
+          subtract(union(this.outlineHalf), this.innerHalf, this.end.subtractionForGripHalf),
+          hull(
+            translate(
+              [jointX, this.sk.y.totalHalf - jointWidth, this.sk.z.total + 2 - jointHeight],
+              Centered.cuboid([joinLength - 3, jointWidth, jointHeight]),
+            ),
+            translate(
+              [jointX, this.sk.y.totalHalf - this.sk.y.sideThickness, this.sk.z.total + 2 - jointHeight],
+              Centered.cuboid([joinLength, this.sk.y.sideThickness, jointHeight]),
+            ),
+          ),
+        ),
+        hull(
+          translate(
+            [jointX + 2, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2 - 2],
+            Centered.cuboid([joinLength - 2, 3, 0.1]),
+          ),
+          translate(
+            [jointX + 0.9, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2 - 3],
+            Centered.cuboid([0.1, 3, 0.1]),
+          ),
+          translate(
+            [jointX + 1.2, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2],
+            Centered.cuboid([0.1, 3, 0.1]),
+          ),
+          // translate(
+          //   [jointX + 1 - 0.3, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + -1],
+          //   Centered.cuboid([1, 3, 0.1]),
+          // ),
+        ),
+
+        // 下記をアンコメントすると、電池ボックスホルダーとのかみ合わせを確認できる
+        // Centered.cuboid([99, this.sk.y.totalHalf - 2.5, 99]),
+      ),
+    ];
   }
 
   @cacheGetter
@@ -93,29 +134,38 @@ export class Grip1_1 extends Cacheable implements Viewable {
           extrudeLinear({height: this.sk.x.total - this.sk.x.endThickness}, [...this.endOutlineHalf]),
         ),
       ]),
-      ...this.makeEndJointOutlineHalf(),
+      // ...this.makeEndJointOutlineHalf(),
       // translate([0, 0, this.sk.z.total], Centered.cuboid([this.sk.x.topWall + 4, this.sk.y.totalHalf, 3])),
     ];
   }
 
   public makeEndJointOutlineHalf(): Geom3[] {
+    const jointWidth = 5.5;
+    const jointHeight = 6;
+    const joinLength = 9;
+    const jointX = 8;
     return [
-      translate(
-        [this.sk.x.topWall + 1, 0, this.sk.z.total],
-        subtract(
-          // this.sk.z.endJoint の高さに盛り上げる
-          this.geom3FromSidePlane(
-            polygon({
-              points: [
-                [-this.sk.x.endJointTotal, 0],
-                [0, 0],
-                [-this.sk.x.endJointTotal + this.sk.x.endJointThickness + 0.5, this.sk.z.endJoint + 0.1],
-                [-this.sk.x.endJointTotal, this.sk.z.endJoint + 0.1],
-              ],
-            }),
-            this.sk.y.totalHalf,
+      subtract(
+        hull(
+          translate(
+            [jointX, this.sk.y.totalHalf - jointWidth, this.sk.z.total + 2 - jointHeight],
+            Centered.cuboid([joinLength - 5, jointWidth, jointHeight]),
+          ),
+          translate(
+            [jointX, this.sk.y.totalHalf - this.sk.y.sideThickness, this.sk.z.total + 2 - jointHeight],
+            Centered.cuboid([joinLength, this.sk.y.sideThickness, jointHeight]),
           ),
         ),
+        hull(
+          translate(
+            [jointX + 1, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2 - 2],
+            Centered.cuboid([joinLength - 2, 3, 0.1]),
+          ),
+          translate([jointX + 1, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2 - 3], Centered.cuboid([1, 3, 99])),
+        ),
+        // translate([x + 1, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2 - 2], Centered.cuboid([99, 3, 99])),
+        // 下記をアンコメントすると、電池ボックスホルダーとのかみ合わせを確認できる
+        // Centered.cuboid([99, this.sk.y.totalHalf - 2.5, 99]),
       ),
     ];
   }
@@ -129,7 +179,6 @@ export class Grip1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get innerHalf(): Geom3[] {
-    const maxY = Skeleton.BatteryBoxHolder.BatteryBox.y.total / 2 + 0.4;
     return [
       translateX(
         this.sk.x.endThickness,
@@ -149,10 +198,7 @@ export class Grip1_1 extends Cacheable implements Viewable {
                   // 電池ボックスと干渉しないようにするための空間
                   translateX(
                     this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'boardBottom') + 4,
-                    Centered.rectangle([
-                      this.sk.End.z.bottomToTop.totalFromTo('boardBottom', 'ledWallBottom') - 4,
-                      maxY,
-                    ]),
+                    Centered.rectangle([99, this.sk.y.innerMax]),
                   ),
                   // 基板の足が入るようにするスペース
                   translateX(
@@ -184,27 +230,36 @@ export class Grip1_1 extends Cacheable implements Viewable {
                 }),
               );
             })(),
+            // 基板の終了点目印
+            translate(
+              [
+                this.sk.Board.x.total + 0.3,
+                this.sk.Board.y.totalHalf - 2,
+                this.sk.End.z.bottomToTop.totalFromTo('gripEndBottomStart', 'boardBottom') - 0.2,
+              ],
+              Centered.cuboid([99, 2.5, 1]),
+            ),
           ),
           this.screw.octagonLooseOutline,
         ),
       ),
 
-      // ブリッジの長さを小さくできるようにナナメに切り取る
-      translate(
-        [this.sk.x.topWall + 1, 0, this.sk.z.total - 10],
-        extrudeLinear(
-          {height: 99},
-          polygon({
-            points: [
-              [99, 0],
-              [99, Skeleton.BatteryBoxHolder.BatteryBox.y.total / 2 + 0.4],
-              [0, Skeleton.BatteryBoxHolder.BatteryBox.y.total / 2 + 0.4],
-              [-this.sk.x.endJointTotal + this.sk.x.endJointThickness + 0.4, 7],
-              [-this.sk.x.endJointTotal + this.sk.x.endJointThickness + 0.4, 0],
-            ],
-          }),
-        ),
-      ),
+      // // ブリッジの長さを小さくできるようにナナメに切り取る
+      // translate(
+      //   [this.sk.x.topWall + 1, 0, this.sk.z.total - 10],
+      //   extrudeLinear(
+      //     {height: 99},
+      //     polygon({
+      //       points: [
+      //         [99, 0],
+      //         [99, this.sk.y.innerMax],
+      //         [0, Skeleton.BatteryBoxHolder.BatteryBox.y.total / 2 + 0.4],
+      //         [-this.sk.x.endJointTotal + this.sk.x.endJointThickness + 0.4, 7],
+      //         [-this.sk.x.endJointTotal + this.sk.x.endJointThickness + 0.4, 0],
+      //       ],
+      //     }),
+      //   ),
+      // ),
     ];
   }
 
@@ -252,7 +307,7 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
           this.endPlaneToGeom3(this.endOutlineHalf, this.sk.x.base),
           translate(
             [0, 0, this.sk.z.bottomToTop.valueAt('ledWallBottom')],
-            Centered.cuboid([15, 7 - 0.3, this.sk.z.ledWallThickness]),
+            Centered.cuboid([15, this.sk.y.totalHalf - 5.5 - 0.2, this.sk.z.ledWallThickness + 2]),
           ),
 
           translateZ(
@@ -270,14 +325,14 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
             ),
           ),
         ),
-        translate(
-          [
-            Skeleton.Grip.x.topWall + 1 - Skeleton.Grip.x.endJointTotal - 0.5,
-            0,
-            this.sk.z.bottomToTop.totalFromTo('gripEndBottomStart', 'ledWallTop'),
-          ],
-          Centered.cuboid([2.5, 99, 2.5]),
-        ),
+        // translate(
+        //   [
+        //     Skeleton.Grip.x.topWall + 1 - Skeleton.Grip.x.endJointTotal - 0.5,
+        //     0,
+        //     this.sk.z.bottomToTop.totalFromTo('gripEndBottomStart', 'ledWallTop'),
+        //   ],
+        //   Centered.cuboid([2.5, 99, 2.5]),
+        // ),
 
         // 面取り
         mirrorX(
@@ -294,7 +349,7 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
               ),
               intersect(
                 chamfer(rectangle({size: [99, Skeleton.Grip.y.resetSwitchHole.valueAt('start') * 2]}), 0.6),
-                cuboid({size: [99, 99, 99], center: [99 / 2 + this.sk.z.bottomToTop.valueAt('ledWallTop'), 0, 0]}),
+                cuboid({size: [99, 99, 99], center: [99 / 2 + this.sk.z.bottomToTop.valueAt('ledWallTop') + 2, 0, 0]}),
               ),
               intersect(
                 chamfer(this.endOutlineHalf, 0.6),
@@ -394,7 +449,7 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
       -this.sk.z.bottomThickness,
       union([
         Centered.rectangle([sk.z.total, sk.y.totalHalf - sk.other.radius]),
-        translateX(sk.other.radius, Centered.rectangle([sk.z.total - sk.other.radius, sk.y.totalHalf])),
+        translateX(sk.other.radius, Centered.rectangle([sk.z.total - sk.other.radius + 2, sk.y.totalHalf])),
         circle({radius: sk.other.radius, center: [sk.other.radius, sk.y.totalHalf - sk.other.radius]}),
       ]),
     );

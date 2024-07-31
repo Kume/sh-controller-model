@@ -31,6 +31,10 @@ export class MainBoard extends Cacheable implements Viewable {
         {label: 'half', model: () => this.half},
         {label: 'full', model: () => this.full},
         {label: 'fullWithSwitchSupport', model: () => this.fullWithSwitchSupport},
+        {
+          label: 'fullWithSwitchSupport1_1',
+          model: () => [...this.full, ...this.xiao.switchSupport1_1.map((g) => mirrorZ(this.transformXiao(g)))],
+        },
         {label: 'testBoard', model: () => this.testBoard},
       ];
     });
@@ -167,6 +171,89 @@ class XiaoBoard {
       translateX(-this.usbProtrusion, this.usbHalf),
       translateX(this.mainChipDistanceFromBoardEnd, this.mainChipHalf),
       translateY(this.legDistanceFromCenter, this.legHalf),
+    ];
+  }
+
+  public get switchSupport1_1(): Geom3[] {
+    const baseThickness = 1;
+    const chipMargin = 0.5;
+    const baseZ = -this.boardThickness - this.mainChipThickness - chipMargin;
+    const innerMargin = 0.5;
+    const wallThickness = 1;
+    // const wallHeight = this.legLength - baseZ + baseThickness;
+    const wallHeight = 6;
+    const wallLength = this.mainChipDistanceFromBoardEnd + this.mainChipHeight - 2;
+    const bridgeLength = this.boardWidth + innerMargin * 2 + wallThickness * 2;
+    const bridgeWidth = 2;
+
+    return [
+      addColor(
+        [0.2, 0.2, 0.8],
+        subtract(
+          union(
+            halfToFull([
+              union(
+                cuboid({
+                  size: [bridgeWidth, bridgeLength, baseThickness],
+                  center: [wallLength - bridgeWidth / 2, 0, baseZ - baseThickness / 2],
+                }),
+
+                cuboid({
+                  size: [7, bridgeLength - 3.5, baseThickness],
+                  center: [10, 0, baseZ - baseThickness / 2],
+                }),
+                // アーム
+                cuboid({
+                  size: [bridgeWidth, wallThickness, wallHeight],
+                  center: [
+                    wallLength - bridgeWidth / 2,
+                    this.boardWidth / 2 + wallThickness / 2 + innerMargin,
+                    baseZ + 8 / 2 - baseThickness,
+                  ],
+                }),
+
+                //// 1_1追加部分
+                cuboid({
+                  size: [12, 0.6, 2.5],
+                  center: [9.5, -6.5 - 0.6 / 2, -2.75],
+                }),
+              ),
+            ]),
+
+            // 押すときの支点
+            cuboid({
+              size: [bridgeWidth, 2, chipMargin],
+              center: [wallLength - bridgeWidth - 1, -this.mainChipWidth / 2 + 0.5, baseZ + chipMargin / 2],
+            }),
+
+            // ボタンを押す部分
+            cuboid({
+              size: [6, 11, baseThickness],
+              center: [this.boardHeight - 6 / 2 - 2, 0, baseZ - baseThickness / 2],
+            }),
+            cuboid({
+              size: [2, 3, 0.6],
+              center: [this.boardHeight - 2 / 2, 4, baseZ + 0.6 / 2],
+            }),
+            hull(
+              cuboid({
+                size: [wallThickness, 3, 0.0001],
+                center: [this.boardHeight + wallThickness / 2, 4, baseZ],
+              }),
+              cuboid({
+                size: [0.0001, 3, 1],
+                center: [this.boardHeight - 2, 4, baseZ - 1 / 2],
+              }),
+            ),
+
+            // ボタンを押す部分の先にあるひっかかり
+            cuboid({
+              size: [wallThickness, 3, 3],
+              center: [this.boardHeight + wallThickness / 2, 4, baseZ + 3 / 2],
+            }),
+          ),
+        ),
+      ),
     ];
   }
 

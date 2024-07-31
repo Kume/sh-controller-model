@@ -92,8 +92,8 @@ export class Skeleton {
         return S.ButtonPad.Board.z.natHolder.totalFromTo('boardTop', 'natEnd');
       },
       get stickBottom() {
-        return this.boardBottom - 0.5
-      }
+        return this.boardBottom - 0.5;
+      },
     } as const;
     public static readonly other = {
       sideThickness: 1.5,
@@ -677,6 +677,12 @@ export class Skeleton {
             ['end', S.Grip.other.resetSwitchHoleSize],
           ]);
         },
+        get innerMax() {
+          return Skeleton.BatteryBoxHolder.BatteryBox.y.total / 2 + 0.4;
+        },
+        get sideThickness() {
+          return this.totalHalf - this.innerMax;
+        },
       } as const;
     }
     public static get z() {
@@ -689,7 +695,7 @@ export class Skeleton {
     public static get other() {
       return {
         ledHoleSize: 3,
-        resetSwitchHoleSize: 2.6,
+        resetSwitchHoleSize: 2.7,
         radius: 6,
       } as const;
     }
@@ -814,7 +820,7 @@ export class Skeleton {
               ['switchHoleEnd', 4],
               ['usbHoleStart', 7.4],
               ['usbHoleEnd', 4],
-              ['ledWallTop', this.ledWallThickness - 0.2],
+              ['ledWallTop', this.ledWallThickness - 0.3],
             ],
             this.bottomToTop.valueAt('ledWallTop'),
           );
@@ -964,9 +970,9 @@ export class Skeleton {
       get total() {
         return this.tailToHead.totalValue;
       },
-      tailJoint: 9,
+      tailJoint: 7,
       tailJointAdditional: 1,
-      tailJointAdditionalStart: 3,
+      tailJointAdditionalStart: 3.3,
       jointSideNaname: 10,
       get coverTailToHead() {
         const radius = S.BatteryBoxHolder.other.radius;
@@ -1063,7 +1069,7 @@ export class Skeleton {
         // 回転 + 延長した後にボタンパッドの上と大体合うように調整
         return S.ButtonPad.z.total - 0.5;
       },
-      tailJointAdditional: 1.6, // グリップにぶつからないように目で調整した
+      tailJointAdditional: 1.7, // グリップにぶつからないように目で調整した
       cableGroove: 10.2,
       cableHook: 3,
       headJoint: {

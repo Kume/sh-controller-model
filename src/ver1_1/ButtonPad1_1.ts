@@ -59,6 +59,9 @@ export class ButtonPad1_1 extends Cacheable implements Viewable {
         union(halfToFull(this.coverHalf)),
         this.sk.transform3ds.stick.applyGeom(union(this.stick.looseOutlineFotTopJoint)),
 
+        // ケーブルの部分を空けておく
+        translate([23, -8, this.sk.z.stickBottom], Centered.cuboid([6, 8, 99])),
+
         // 印刷できない極薄の壁になってしまう部分を削っておく
         translate([0, 3.5, this.sk.z.stickBottom], Centered.cuboid([3, 3, 99])),
         translate([10.8, -14, this.sk.z.stickBottom], Centered.cuboid([2, 3, 99])),
@@ -99,8 +102,16 @@ export class ButtonPad1_1 extends Cacheable implements Viewable {
                   ]),
                 ),
               ),
-              expand({delta: -this.sk.other.sideThickness}, this.outline2dForExpandHalf),
+              expand({delta: -this.sk.other.sideThickness - offset}, this.outline2dForExpandHalf),
             ),
+          ),
+          translate(
+            [this.sk.x.stickSideToEnd.valueAt('boardEnd') + 0.5, 0, this.sk.z.boardBottom],
+            Centered.cuboid([
+              this.sk.x.cover.valueAt('end') - offset - 0.5 - this.sk.x.stickSideToEnd.valueAt('boardEnd'),
+              this.sk.y.coverButtonSideWidthHalf - offset,
+              this.sk.Board.z.thickness,
+            ]),
           ),
         ),
         this.board.sk.transformSelf.applyGeoms(this.board.looseOutlineForCover),

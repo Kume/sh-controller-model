@@ -77,7 +77,7 @@ export class Screw extends Cacheable implements Viewable {
 
   public get headLooseOutlineBase(): Geom3 {
     const height = this.looseHeadOutlineHeight;
-    return cylinder({radius: this.headRadius + 0.2, height, center: [0, 0, height / 2]});
+    return cylinder({radius: this.headRadius + 0.35, height, center: [0, 0, height / 2]});
   }
 
   public get octagonBodyLooseOutline(): Geom3 {

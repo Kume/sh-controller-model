@@ -21,10 +21,12 @@ import {
 import {Skeleton} from './Skeleton';
 import {cuboid, rectangle} from '@jscad/modeling/src/primitives';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
+import {MainBoard} from '../MainBoard';
 
 export class SHController1_1 extends Cacheable implements Viewable {
   public readonly trigger = new Trigger1_1();
   public readonly buttonPad = new ButtonPad1_1();
+  public readonly mainBoardOld = new MainBoard();
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -38,7 +40,7 @@ export class SHController1_1 extends Cacheable implements Viewable {
       {label: 'batteryBoxHolderHalf', model: () => this.batteryBoxHolderHalf},
       {label: 'batteryBoxHolderFull', model: () => this.batteryBoxHolderFull},
       {label: 'batteryBoxHolderForPrint', model: () => this.batteryBoxHolderForPrint},
-      {label: 'batteryBoxHolderSubtractionHalf', model: () => this.batteryBoxHolderSubtractionHalf},
+      {label: 'batteryBoxCoverForPrint', model: () => this.batteryBoxCoverForPrint},
       {label: 'gripHalfWithBoard', model: () => this.gripHalfWithBoard},
       {label: 'gripHalfWithBatteryBoxAndBoard', model: () => this.gripHalfWithBatteryBoxAndBoard},
       {label: 'gripFullWithBatteryBoxAndBoard', model: () => this.gripFullWithBatteryBoxAndBoard},
@@ -48,12 +50,14 @@ export class SHController1_1 extends Cacheable implements Viewable {
   public get printItems(): ViewerItem[] {
     return [
       {label: 'BatteryBoxHolder1_1', model: () => this.batteryBoxHolderForPrint},
+      {label: 'BatteryBoxCover1_1', model: () => this.batteryBoxCoverForPrint},
       {label: 'Trigger1_1', model: () => this.trigger.frontFull},
       {label: 'TriggerJoint1_1', model: () => this.trigger.joint.full},
       {label: 'Grip1_1', model: () => this.printGrip},
       {label: 'GripEnd1_1', model: () => this.gripEndFull},
       {label: 'ButtonPad1_1', model: () => this.buttonPad.full},
       {label: 'ButtonPadCover1_1', model: () => this.buttonPad.coverFull},
+      {label: 'SwitchSupport1_1', model: () => mirrorY(this.mainBoardOld.xiao.switchSupport1_1)},
     ];
   }
 
@@ -101,6 +105,7 @@ export class SHController1_1 extends Cacheable implements Viewable {
         union(this.trigger.grip.half),
         this.trigger.grip.jointSubtructionHalf,
         this.transforms.batteryBoxHolderToGrip.applyGeoms(this.trigger.batteryBoxHolder.looseOutlineHalfBase),
+        ...this.gripSubtractionFull,
       ),
     ];
   }
@@ -167,14 +172,19 @@ export class SHController1_1 extends Cacheable implements Viewable {
       subtract(
         union(halfToFull(this.trigger.grip.end.half)),
         this.gripSubtractionFull,
-        this.transforms.batteryBoxHolderToGrip.applyGeom(
-          union(
-            this.trigger.batteryBoxHolder.screw.squareLooseOutline,
-            this.trigger.batteryBoxHolder.screw.squareBridgeSupport,
-            this.trigger.batteryBoxHolder.screw.squareHeadLooseOutlineYobi,
+        this.trigger.grip.innerFull,
+
+        // ネジ穴 組み立て誤差で微妙にずれるので、translateZで調整
+        translateZ(
+          0.3,
+          this.transforms.batteryBoxHolderToGrip.applyGeom(
+            union(
+              this.trigger.batteryBoxHolder.screw.squareLooseOutline,
+              this.trigger.batteryBoxHolder.screw.squareBridgeSupport,
+              this.trigger.batteryBoxHolder.screw.squareHeadLooseOutlineYobi,
+            ),
           ),
         ),
-        this.trigger.grip.innerFull,
       ),
     ];
   }
@@ -188,17 +198,9 @@ export class SHController1_1 extends Cacheable implements Viewable {
     ];
   }
 
-  public get batteryBoxHolderSubtractionHalf(): Geom3[] {
-    return [
-      this.transforms.gripToBatteryBoxHolder.applyGeom(
-        expand({delta: 0.3}, subtract(union(this.trigger.grip.makeEndJointOutlineHalf()), this.trigger.grip.innerHalf)),
-      ),
-    ];
-  }
-
   @cacheGetter
   public get batteryBoxHolderHalf(): Geom3[] {
-    return [subtract(this.trigger.batteryBoxHolder.half, this.batteryBoxHolderSubtractionHalf)];
+    return [subtract(this.trigger.batteryBoxHolder.half)];
   }
 
   @cacheGetter
@@ -215,16 +217,29 @@ export class SHController1_1 extends Cacheable implements Viewable {
       union(
         base,
         rotateZ(Math.PI, base),
-        cuboid({
-          size: [
-            Skeleton.BatteryBoxHolder.z.tailJointAdditional * 2,
-            Skeleton.BatteryBoxHolder.y.tailJointAdditionalHalf * 2,
-            0.2,
-          ],
-          center: [0, 0, Skeleton.BatteryBoxHolder.x.tailJointAdditionalStart + 0.1],
-        }),
+        // ジョイント用の突起がブリッジになるように接触部分に少しだけ厚みをもたせる
+        halfToFull([
+          cuboid({
+            size: [Skeleton.BatteryBoxHolder.z.tailJointAdditional * 2, 2.5, 0.2],
+            center: [
+              0,
+              Skeleton.BatteryBoxHolder.y.totalHalf - 5.5 / 2,
+              Skeleton.BatteryBoxHolder.x.tailJointAdditionalStart + 0.2 / 2,
+            ],
+          }),
+        ]),
       ),
     ];
+  }
+
+  public get batteryBoxCoverForPrint(): Geom3[] {
+    const base = union(
+      translateX(3.8, rotateY(-Math.PI / 2, union(halfToFull(this.trigger.batteryBoxHolder.coverHalf)))),
+
+      // 3つを結合する橋
+      cuboid({size: [1, 12, 2], center: [9, 0, 2 + 2 / 1]}),
+    );
+    return [base, rotateZ((Math.PI * 2) / 3, base), rotateZ((-Math.PI * 2) / 3, base)];
   }
 
   public get gripHalfWithBoard(): Geom3[] {

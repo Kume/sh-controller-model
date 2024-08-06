@@ -4,6 +4,7 @@ import {intersect, subtract, union} from '@jscad/modeling/src/operations/boolean
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {hull} from '@jscad/modeling/src/operations/hulls';
 import {
+  mirrorX,
   mirrorZ,
   rotateY,
   translate,
@@ -332,6 +333,11 @@ export class Trigger1_1 extends Cacheable implements Viewable {
               extrudeLinear({height: 1}, expand({delta: 0.4, corners: 'edge'}, this.frontJointSupprtGeom2)),
             ),
           ),
+          // 印刷がうまくいかない鋭い形状を削る
+          translate(
+            [this.sk.x.gripSide - 1, this.sk.y.frontGripJoint.valueAt('gripEnd') - 1, 19],
+            Centered.cuboid([1, 99, 1.2]),
+          ),
         ),
       ),
     ];
@@ -343,7 +349,11 @@ export class Trigger1_1 extends Cacheable implements Viewable {
       subtract(
         hull(
           subtract(
-            this.buttonFace.sk.transformSelf.applyGeoms(this.buttonFace.outlineHalf),
+            intersect(
+              this.buttonFace.sk.transformSelf.applyGeoms(this.buttonFace.outlineHalf),
+              // 先端が尖らないように削る
+              this.buttonFace.extendedOutlineHalf.map((g) => translateX(this.sk.x.total - 1.5, mirrorX(g))),
+            ),
             // buttonFace.outlineHalfは余分な形状を含んでいるので、凸包に使うのにちょうどよい部分だけ残すように斜めにカットする
             rotateY(degToRad(10), cuboid({size: [26 * 2, this.sk.y.total, 100]})),
           ),
@@ -397,6 +407,20 @@ class ButtonFace1_1 extends Cacheable implements Viewable {
 
   public get outlineHalf(): Geom3[] {
     return [extrudeLinear({height: this.sk.z.total}, this.bottomFace)];
+  }
+
+  /** 形状の演算用にxのマイナス方向に延長したoutline */
+  public get extendedOutlineHalf(): Geom3[] {
+    return [
+      union(
+        this.outlineHalf,
+        translateX(this.sk.x.total, Centered.cuboid([99, Skeleton.Trigger.y.totalHalf, 99])),
+        translateX(
+          Skeleton.Common.TactileSwitch.z.subterraneanHeight,
+          Centered.cuboid([99, this.sk.Board.y.totalHalf + 1, 99]),
+        ),
+      ),
+    ];
   }
 
   @cacheGetter

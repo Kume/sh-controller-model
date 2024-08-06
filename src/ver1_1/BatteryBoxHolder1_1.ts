@@ -21,7 +21,7 @@ import {Screw} from '../Screw';
 
 const coverCollisionOffset = 0.3;
 
-const screwLength = 6;
+const screwLength = 7.5;
 
 export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.BatteryBoxHolder;

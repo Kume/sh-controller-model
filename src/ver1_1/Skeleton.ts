@@ -179,23 +179,23 @@ export class Skeleton {
             1: [
               // 底面中央付近
               [xEnd - 4, 4, 0],
-              [xEnd - 17, 6, 0],
+              [xEnd - 16, 6, 0],
 
               // 底面横エッジギリギリ
               [xEnd - 2, yOffset + 1, 0],
-              [xEnd - 20, yOffset + 2.5, 0],
+              [xEnd - 17.5, yOffset + 1, 0],
 
               // 上の方(これのzを上げると削る角度が増える)
-              [xEnd - 6, yOffset + 5, 3],
-              [xEnd - 18, yOffset + 7, 3],
+              [xEnd - 6, yOffset + 5, 5],
+              [xEnd - 16, yOffset + 7, 5],
             ],
 
             2: [
               // 底面を丸くくり抜く形に5点配置
               [xEnd, yOffset, 0],
               [xEnd - 7, yOffset - 1, 0],
-              [xEnd - 20, yOffset + 2.5, 0], // this.[1][3] と同様
-              [xEnd - 26, yOffset + 8, 0],
+              // [xEnd - 19, yOffset + 2.5, 0], // this.[1][3] と同様
+              [xEnd - 17.5, yOffset + 1, 0],
               [xEnd - 32, yOffset + 15.8, 0], // ジョイント部分の接点と同一
 
               // 上の方(これのzを上げると削る角度が増える)
@@ -810,7 +810,7 @@ export class Skeleton {
         },
         additionalForScrew: {
           total: 10,
-          end: 4,
+          end: 7,
         },
         get bottomToTopForHoles() {
           return seqVal(

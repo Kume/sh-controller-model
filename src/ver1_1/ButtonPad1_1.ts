@@ -209,7 +209,7 @@ export class ButtonPad1_1 extends Cacheable implements Viewable {
 
   private get innerHalf(): Geom3[] {
     return [
-      ...this.board.sk.transformSelf.applyGeoms(this.board.looseOutline),
+      ...this.board.sk.transformSelf.applyGeoms(this.board.looseOutline).map((g) => translateZ(-0.0001, g)),
       intersect(
         extrudeLinear({height: this.sk.z.boardBottom + this.sk.Board.z.thickness}, this.coverAreaHalf2d),
         extrudeLinear({height: 99}, expand({delta: -this.sk.other.sideThickness}, this.outline2dForExpandHalf)),

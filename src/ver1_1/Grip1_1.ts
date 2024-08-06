@@ -19,6 +19,7 @@ import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {MainBoard1_1} from './MainBoard1_1';
 import {hull} from '@jscad/modeling/src/operations/hulls';
 import {Screw} from '../Screw';
+import {degToRad} from '@jscad/modeling/src/utils';
 
 export class Grip1_1 extends Cacheable implements Viewable {
   public readonly sk = Skeleton.Grip;
@@ -95,6 +96,7 @@ export class Grip1_1 extends Cacheable implements Viewable {
             ),
           ),
         ),
+        // 電池ボックスとのかみ合わせの部分
         hull(
           translate(
             [jointX + 2, this.sk.y.totalHalf - 1.25 - 3, this.sk.z.total + 2 - 2],
@@ -323,9 +325,9 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
                     this.sk.z.additionalForScrew.end,
                   ]),
                   translateX(
-                    6.5,
+                    5.5,
                     Centered.cuboid([
-                      1,
+                      2,
                       Skeleton.Grip.y.resetSwitchHole.valueAt('start') - 5.5 / 2 - 0.2,
                       this.sk.z.additionalForScrew.total,
                     ]),
@@ -341,9 +343,9 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
                     this.sk.z.additionalForScrew.end,
                   ]),
                   translateX(
-                    6.5,
+                    5.5,
                     Centered.cuboid([
-                      1,
+                      2,
                       Skeleton.Grip.y.resetSwitchHole.valueAt('start'),
                       this.sk.z.additionalForScrew.total,
                     ]),
@@ -450,6 +452,8 @@ export class GripEnd1_1 extends Cacheable implements Viewable {
         ),
         this.sk.x.base,
       ),
+      // GripEndをはめ込みやすくするため、少しナナメに切っておく
+      translate([0, 0, this.sk.z.total - 4], rotateY(degToRad(-20), Centered.cuboid([5, 99, 10]))),
     ];
   }
 

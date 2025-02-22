@@ -1052,12 +1052,17 @@ export class Skeleton {
     },
     z: {
       get bottomToTop() {
+        // 噛み合わせ都合のオフセット。本来はモデル側で調整したいが、このタイミングから調整が難しかったのでこちらで調整
+        const baseMargin = 0.2;
         return seqVal([
           ['bottomWallEnd', 1.5],
           ['batteryBoxBottom', S.BatteryBoxHolder.other.innerMargin],
-          ['batteryBoxCutoutStart', S.BatteryBoxHolder.BatteryBox.z.base - S.BatteryBoxHolder.BatteryBox.z.cutout],
+          [
+            'batteryBoxCutoutStart',
+            S.BatteryBoxHolder.BatteryBox.z.base - S.BatteryBoxHolder.BatteryBox.z.cutout - baseMargin,
+          ],
           ['batteryBoxBase', S.BatteryBoxHolder.BatteryBox.z.cutout],
-          ['batteryBoxTop', S.BatteryBoxHolder.BatteryBox.z.cover],
+          ['batteryBoxTop', S.BatteryBoxHolder.BatteryBox.z.cover + baseMargin],
           ['topWallStart', S.BatteryBoxHolder.other.innerMargin],
           ['top', S.BatteryBoxHolder.other.topThickness],
         ]);

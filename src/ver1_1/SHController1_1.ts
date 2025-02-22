@@ -20,12 +20,13 @@ import {Skeleton} from './Skeleton';
 import {cuboid, rectangle} from '@jscad/modeling/src/primitives';
 import {extrudeLinear} from '@jscad/modeling/src/operations/extrusions';
 import {MainBoard} from '../MainBoard';
-import {hull} from '@jscad/modeling/src/operations/hulls';
+import {BatteryBoxHolder} from '../BatteryBoxHolder';
 
 export class SHController1_1 extends Cacheable implements Viewable {
   public readonly trigger = new Trigger1_1();
   public readonly buttonPad = new ButtonPad1_1();
   public readonly mainBoardOld = new MainBoard();
+  public readonly batteryBoxHolderOld = new BatteryBoxHolder({minXDistanceFromGripBottom: 1, jointOffset: 1});
 
   public get viewerItems(): ViewerItem[] {
     return [
@@ -57,6 +58,7 @@ export class SHController1_1 extends Cacheable implements Viewable {
       {label: 'ButtonPad1_1', model: () => this.buttonPad.full},
       {label: 'ButtonPadCover1_1', model: () => this.buttonPad.coverFull},
       {label: 'SwitchSupport1_1', model: () => mirrorY(this.mainBoardOld.xiao.switchSupport1_1)},
+      {label: 'SwitchPusher1_1', model: () => mirrorY(this.batteryBoxHolderOld.switchPusher1_1)},
     ];
   }
 
@@ -240,10 +242,10 @@ export class SHController1_1 extends Cacheable implements Viewable {
 
   public get batteryBoxCoverForPrint(): Geom3[] {
     const base = union(
-      translateX(3.8, rotateY(-Math.PI / 2, union(halfToFull(this.trigger.batteryBoxHolder.coverHalf)))),
+      translateX(3.2, rotateY(-Math.PI / 2, union(halfToFull(this.trigger.batteryBoxHolder.coverHalf)))),
 
       // 3つを結合する橋
-      cuboid({size: [1, 12, 2], center: [9, 0, 2 + 2 / 1]}),
+      cuboid({size: [1, 12, 1], center: [9, 0, 3 + 1 / 1]}),
     );
     return [base, rotateZ((Math.PI * 2) / 3, base), rotateZ((-Math.PI * 2) / 3, base)];
   }

@@ -113,29 +113,42 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
     const grooveHeadYOffset = this.sk.y.cableGrooveSeq.totalFromTo('grooveEnd', 'bottomGrooveEnd');
     const bottomGrooveLength = this.sk.x.collisionAvoidanceHole.valueAt('holeStart') - 0.5;
     return [
-      translate(
-        [innereXEnd - this.sk.x.cableGroove, yGrooveStart, 0],
-        Centered.cuboid([this.sk.x.cableGroove, cableGrooveWidth, this.sk.z.cableGroove]),
+      // translate(
+      //   [innereXEnd - this.sk.x.cableGroove, yGrooveStart, 0.2],
+      //   Centered.cuboid([this.sk.x.cableGroove + 0.0001, cableGrooveWidth, this.sk.z.cableGroove - 0.2]),
+      // ),
+      translateZ(
+        0.2,
+        extrudeLinear(
+          {
+            height: this.sk.z.cableGroove - 0.2,
+          },
+          union(
+            polygon({
+              points: [
+                [innereXEnd - this.sk.x.cableGroove, yGrooveStart],
+                [innereXEnd, yGrooveStart],
+                [bottomGrooveLength, yGrooveStart + grooveHeadYOffset],
+                [bottomGrooveLength + 5, yGrooveStart + grooveHeadYOffset],
+                [bottomGrooveLength + 5, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
+                [bottomGrooveLength, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
+                [innereXEnd - this.sk.x.cableGroove, yGrooveStart + cableGrooveWidth],
+              ],
+            }),
+            translate(
+              [this.sk.x.collisionAvoidanceHole.valueAt('holeStart') + 1.9999, this.sk.y.collisionAvoidanceHole / 2],
+              Centered.rectangle([this.sk.x.collisionAvoidanceHole.totalFromTo('holeStart', 'holeEnd') - 2, 6]),
+            ),
+          ),
+        ),
       ),
       extrudeLinear(
         {
           height: this.sk.z.bottomToTop.valueAt('bottomWallEnd'),
         },
-        union(
-          polygon({
-            points: [
-              [innereXEnd, yGrooveStart],
-              [bottomGrooveLength, yGrooveStart + grooveHeadYOffset],
-              [bottomGrooveLength + 5, yGrooveStart + grooveHeadYOffset],
-              [bottomGrooveLength + 5, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
-              [bottomGrooveLength, yGrooveStart + cableGrooveWidth + grooveHeadYOffset],
-              [innereXEnd, yGrooveStart + cableGrooveWidth],
-            ],
-          }),
-          translate(
-            [this.sk.x.collisionAvoidanceHole.valueAt('holeStart') + 1.9999, this.sk.y.collisionAvoidanceHole / 2],
-            Centered.rectangle([this.sk.x.collisionAvoidanceHole.totalFromTo('holeStart', 'holeEnd') - 2, 6]),
-          ),
+        translate(
+          [this.sk.x.collisionAvoidanceHole.valueAt('holeStart') + 1.9999, this.sk.y.collisionAvoidanceHole / 2],
+          Centered.rectangle([this.sk.x.collisionAvoidanceHole.totalFromTo('holeStart', 'holeEnd') - 2, 6]),
         ),
       ),
       this.sk.transformTailNat.applyGeom(
@@ -261,8 +274,8 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
                 [this.sk.x.tailJoint, 0],
               ],
             }),
-            2,
-            this.sk.y.totalHalf - 2 - 1.75,
+            2.5,
+            this.sk.y.totalHalf - 2 - 2,
           ),
 
           subtract(
@@ -350,30 +363,35 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
 
   @cacheGetter
   public get coverHalf(): Geom3[] {
+    const xOffset = 1;
     return [
       subtract(
         this.coverOutlineHalf,
         this.innerHalf,
-        mirrorX(
-          rotateY(
-            -Math.PI / 2,
-            chamfer(
-              union(
-                this.coverEndPlaneHalf,
-                subtract(
-                  rectangle({size: [this.sk.z.total * 2, this.sk.y.topWidthHalf * 2]}),
-                  rectangle({
-                    size: [this.sk.other.radius * 2.2, this.sk.other.radius * 2.2],
-                    center: [this.sk.z.total, this.sk.y.totalHalf],
-                  }),
+        translateX(
+          xOffset,
+          mirrorX(
+            rotateY(
+              -Math.PI / 2,
+              chamfer(
+                union(
+                  this.coverEndPlaneHalf,
+                  subtract(
+                    rectangle({size: [this.sk.z.total * 2, this.sk.y.topWidthHalf * 2]}),
+                    rectangle({
+                      size: [this.sk.other.radius * 2.2, this.sk.other.radius * 2.2],
+                      center: [this.sk.z.total, this.sk.y.totalHalf],
+                    }),
+                  ),
                 ),
+                0.8,
               ),
-              0.8,
             ),
           ),
         ),
+        Centered.cuboid([xOffset, 99, 99]),
         // 印刷の都合で使う凹み
-        translate([1.5, 3, this.sk.z.bottomToTop.valueAt('batteryBoxBase')], Centered.cuboid([99, 6, 1])),
+        translate([2.5, 3, this.sk.z.bottomToTop.valueAt('batteryBoxBase')], Centered.cuboid([99, 6, 1])),
       ),
     ];
   }
@@ -395,8 +413,7 @@ export class BatteryBoxHolder1_1 extends Cacheable implements Viewable {
         size: [this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top'), this.sk.y.topWidthHalf * 2],
         center: [
           this.sk.z.bottomToTop.valueAt('batteryBoxBase') +
-            this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top') / 2 +
-            coverCollisionOffset,
+            this.sk.z.bottomToTop.totalFromTo('batteryBoxBase', 'top') / 2,
           0,
         ],
       }),

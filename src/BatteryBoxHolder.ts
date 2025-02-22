@@ -506,6 +506,29 @@ export class BatteryBoxHolder extends Cacheable implements Viewable {
       ),
     ];
   }
+
+  public get switchPusher1_1(): Geom3[] {
+    const baseWidth = 20;
+    const mainWidth = 8;
+    const thickness = 4;
+    const baseThickness = 2.5;
+    const mainHeight = this.baseHeight - 1;
+    const maxHeight = this.baseHeight + 3;
+    const holeOffset = 16.5 / 2 - 1.5 / 2;
+    const holeRadius = 1;
+
+    return [
+      subtract(
+        union(
+          cuboid({size: [thickness, baseWidth, baseThickness], center: [0, 0, baseThickness / 2]}),
+          cuboid({size: [thickness - 1, mainWidth, mainHeight], center: [0, 0, mainHeight / 2]}),
+          cuboid({size: [thickness - 1, 4, maxHeight], center: [0, 0, maxHeight / 2]}),
+        ),
+        cylinder({radius: holeRadius, height: baseThickness, center: [0, holeOffset, baseThickness / 2]}),
+        cylinder({radius: holeRadius, height: baseThickness, center: [0, -holeOffset, baseThickness / 2]}),
+      ),
+    ];
+  }
 }
 
 export class BatteryBox extends Cacheable implements Viewable {

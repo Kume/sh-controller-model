@@ -214,8 +214,8 @@ class XiaoBoard {
 
                 //// 1_1追加部分
                 cuboid({
-                  size: [12, 0.6, 2.5],
-                  center: [9.5, -6.5 - 0.6 / 2, -2.75],
+                  size: [9, 0.6, 2.5],
+                  center: [11, -6.5 - 0.6 / 2, -2.75],
                 }),
               ),
             ]),
@@ -251,6 +251,10 @@ class XiaoBoard {
               size: [wallThickness, 3, 3],
               center: [this.boardHeight + wallThickness / 2, 4, baseZ + 3 / 2],
             }),
+          ),
+          hull(
+            cuboid({size: [0.00001, 15, 99], center: [6.5, -3, 0]}),
+            cuboid({size: [0.00001, 12, 99], center: [6.5 + 5, -7, 0]}),
           ),
         ),
       ),
